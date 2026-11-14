@@ -1,0 +1,349 @@
+# Workout Tracker: Technical Design & Implementation Plan
+
+Last updated: 2026-11-13
+
+## Overview
+
+Workout Tracker is a local web app that builds a varied stretch-and-strength routine from the user's own 233 exercises, walks through it one exercise at a time, and logs what was done. It runs on one laptop and is cast to the TV from a browser tab. It is for personal use only, so there are no accounts, no hosting and no cost.
+
+The app never decides which exercises exist: the user does, in two CSV files. The app only decides which subset to show today, and it remembers what was completed so every exercise comes around before any repeats.
+
+The goal is overall health improvement with variety. The build should get something working quickly and double as a refresher in Python and Flask.
+
+## Requirements
+
+The app must generate a different workout on each training day, guide the user through it with images and timers, and record what happened. It must do this on a single laptop with no recurring cost.
+
+**Functional**
+
+- **Library:** 233 exercises (114 stretch, 119 strength) loaded from two CSV files and browsable in the app.
+- **Schedule:** Monday, Wednesday and Friday are full days (10 stretches, 10 strength, 10 different stretches). Tuesday and Thursday are 20 stretches including 3 Balance. Saturday and Sunday are rest days with a "start anyway" option.
+- **Selection:** every body area appears at least once per block, and every exercise is used before any repeats (see Workout selection).
+- **Guided flow:** one exercise at a time showing name, description, dose and image. Space moves to the next one.
+- **Timer:** an on-screen countdown for stretches, driven by a `seconds` value; it runs twice when the stretch is done per side.
+- **Logging:** for each session, the date, which exercises were done or skipped, and an optional note. Strength exercises also log sets, reps and weight.
+- **Backup:** a copy of the database file in V1; CSV export in V2.
+
+**Non-functional**
+
+- Laptop only (no mobile). Internet is needed only to load images.
+- Free to run, with as few dependencies as possible: Flask, plus pytest for tests.
+- Plain, readable code, built step by step in the terminal.
+
+**Decisions already made**
+
+| Topic | Decision |
+| --- | --- |
+| Exercise source | One-time export from the Google Sheet to two CSV files; no live sync |
+| Stretch vs strength | Taken from which CSV the row is in, not from a column |
+| Balance | A separate area, kept apart from Whole body; only on Tuesday and Thursday |
+| Combined area label | "Hips & Glutes; Thighs" becomes "Hips & Glutes" |
+| Extra slots | Go first to Hips & Glutes, Thighs and Back, then spread across the rest |
+| Images | Hotlinked from the web; broken links are acceptable in V1 |
+| Weekends | Rest days |
+| Backup | CSV export is V2 |
+
+## Scope
+
+Version 1 is everything needed to do a real workout and keep a record of it; anything that only reads that record back in a nicer way waits for V2.
+
+**In V1**
+
+- CSV import, SQLite storage and the exercise library page
+- Day-type schedule and the selection logic
+- The one-exercise-at-a-time workout screen with Space, Skip, Back and notes
+- Stretch countdown timer, including the per-side case
+- Strength logging of sets, reps and weight
+- A per-session summary and a plain history list
+- A backup script that copies the database file
+
+**V2 ideas**
+
+- Calendar view and progress summaries
+- CSV export as the backup format
+- Showing the last logged sets and weight beside each strength exercise
+- Downloading images locally so the app works offline
+- Editing exercises inside the app
+- A phone-friendly layout
+
+**Non-goals**
+
+- Any AI component: selection is plain rules plus history
+- Accounts, hosting, or syncing across computers
+- Live sync with Google Sheets
+- Public release
+
+## Architecture and tech stack
+
+A single Flask process on localhost serves server-rendered pages backed by one SQLite file, with a little vanilla JavaScript driving the workout screen. Nothing runs in the cloud, so there is no hosting cost and no login.
+
+```mermaid
+flowchart LR
+  Browser["Browser tab<br/>cast to the TV<br/>pages + workout.js<br/>keys, timer, set logging"] <-->|HTTP| Flask
+  Images["Image hosts<br/>demo images from the web"] -->|loads images| Browser
+  subgraph Flask["Flask app on localhost"]
+    App["app.py<br/>routes and JSON API"]
+    Sel["selection.py<br/>the core: picks workouts, no DB"]
+    DB["db.py<br/>schema and history queries"]
+  end
+  Import["import_data.py<br/>reads both CSV files"] -->|upserts| SQLite
+  DB <-->|SQL| SQLite[("SQLite file<br/>data/workout.db")]
+```
+
+The browser talks only to Flask, which reads and writes one SQLite file; the importer fills the same file, and the browser fetches images straight from their sites.
+
+| Piece | Choice | Why |
+| --- | --- | --- |
+| Backend | Python and Flask | Already familiar, fastest route to a working version |
+| Database | SQLite through Python's `sqlite3`, no ORM | One file, nothing to install, backup is a file copy |
+| Pages | Jinja templates | Server-rendered, no build step |
+| Browser code | Vanilla JavaScript | Space key, timer and saving need very little code |
+| Styling | One CSS file, dark theme, large type | Readable from the couch on a TV |
+| Tests | pytest | The selection logic is pure functions, easy to test |
+| TV | Casting the browser tab | The app is just a web page |
+
+C# with ASP.NET would be better practice, but the stated goal is speed. The schema and selection rules would port over cleanly later.
+
+## Source data and import
+
+Two CSV files are the source of truth for exercises, and a re-runnable import loads them into SQLite. The counts below are from the current work-in-progress sheets.
+
+| Area | Stretch | Strength |
+| --- | --- | --- |
+| Hips & Glutes | 33 | 17 |
+| Thighs | 28 | 21 |
+| Back | 12 | 11 |
+| Balance | 8 | 0 |
+| Shoulders | 7 | 13 |
+| Lower legs & Feet | 6 | 5 |
+| Neck | 6 | 0 |
+| Whole body | 6 | 10 |
+| Chest | 3 | 8 |
+| Core | 3 | 22 |
+| Arms & hands | 2 | 12 |
+| **Total** | **114** | **119** |
+
+The stretch count of Hips & Glutes includes the two rows originally labelled "Hips & Glutes; Thighs". The stretch file has two extra columns, `seconds` and `per_side`, plus a temporary `prefill_review` column that the importer ignores.
+
+**Import rules**
+
+1. The exercise type comes from the file (`stretch.csv` or `strength.csv`), not from a column.
+2. Rows with no area or no name are skipped and counted. The raw sheet exports contain hundreds of blank padding rows.
+3. Whitespace is trimmed, and area names that differ only by capitalization collapse to one spelling.
+4. An area like "Hips & Glutes; Thighs" keeps only the first area.
+5. `on_floor`, `per_side` and `seconds` are validated. A blank floor flag defaults to false and a missing dose is imported, each with a warning.
+6. Equipment that is blank or starts with "None" means no equipment; anything else is shown as a short note on screen.
+7. Re-running the import updates rows matched on type and name. Exercises that disappear from a CSV are marked inactive, never deleted, so history survives. Renaming an exercise creates a new one.
+8. The import ends with a report: rows per type and area, rows skipped, and warnings.
+
+## Data model
+
+Four tables hold everything: the exercise library, one row per workout session, one row per exercise in a session, and one row per strength set. Rotation counts are derived from `session_items` and never stored, so there is one source of truth.
+
+```sql
+CREATE TABLE exercises (
+  id INTEGER PRIMARY KEY,
+  type TEXT NOT NULL CHECK (type IN ('stretch','strength')),
+  focus TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  dose TEXT,
+  image_url TEXT,
+  equipment TEXT,
+  on_floor INTEGER NOT NULL DEFAULT 0,
+  seconds INTEGER,
+  per_side INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (type, name)
+);
+
+CREATE TABLE sessions (
+  id INTEGER PRIMARY KEY,
+  date TEXT NOT NULL,
+  day_type TEXT NOT NULL CHECK (day_type IN ('full','flex')),
+  started_at TEXT NOT NULL,
+  finished_at TEXT
+);
+
+CREATE TABLE session_items (
+  id INTEGER PRIMARY KEY,
+  session_id INTEGER NOT NULL REFERENCES sessions(id),
+  position INTEGER NOT NULL,
+  block TEXT NOT NULL,
+  exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','done','skipped')),
+  note TEXT,
+  completed_at TEXT
+);
+
+CREATE TABLE strength_sets (
+  id INTEGER PRIMARY KEY,
+  session_item_id INTEGER NOT NULL REFERENCES session_items(id),
+  set_number INTEGER NOT NULL,
+  reps INTEGER,
+  weight REAL
+);
+```
+
+- **Dates and times** are stored as ISO text (`2026-11-13`, `2026-11-13T14:16:00`).
+- **Blocks** are `warmup`, `strength` and `cooldown` on full days, and `stretch` on flexibility days.
+- **Times done** for an exercise is the count of its `session_items` rows with status `done`; **last done** is the latest `completed_at` of those rows. Skipped items count toward neither.
+- **Weight** is stored as a number in pounds; the unit is a single setting.
+- SQLite needs `PRAGMA foreign_keys = ON` on every connection to enforce the references.
+
+## Workout selection
+
+Selection is a set of pure functions in `selection.py`: given the exercises, the history and a random generator, they return an ordered list. They touch no database and no clock, which makes them easy to test.
+
+| Day | Type | Plan |
+| --- | --- | --- |
+| Mon, Wed, Fri | Full | 10 stretches, 10 strength, 10 different stretches |
+| Tue, Thu | Flex | 20 stretches: 3 Balance plus 17 from the other areas |
+| Sat, Sun | Rest | Rest message, with "start anyway" for either type |
+
+**How a block is built**
+
+1. Start from the active exercises of the block's type. On full days drop Balance, and drop anything already picked earlier in the session.
+2. Read the history: times done per exercise, and the most recent done date per area.
+3. Give every area that has a candidate one slot. If there are fewer slots than areas, the areas that have gone longest without work win.
+4. Hand out extra slots one at a time: first to Hips & Glutes, Thighs and Back (longest gap first), then to the remaining areas (longest gap first), cycling until the slots run out. An area never gets more slots than it has candidates.
+5. Inside each area, rank exercises by times done (fewest first), then by last done (never done, then oldest), then randomly, and take the top ones.
+6. Order the picks so the same area is not back to back, with standing exercises and floor exercises grouped.
+7. On Tuesday and Thursday, pick the 3 Balance exercises with the same ranking and merge them in before ordering.
+
+A skipped exercise is not counted as done, so it keeps its place at the front of its area's queue. This is what makes the 6 Neck exercises each come up once before any repeat, while Hips & Glutes keeps serving ones it has not shown yet.
+
+**Slot examples**
+
+| Block | Slots | Areas | Result |
+| --- | --- | --- | --- |
+| Stretch block, full day | 10 | 10 | One each |
+| Strength block, full day | 10 | 9 | One each, plus one extra to whichever of Hips & Glutes, Thighs or Back has gone longest |
+| Stretches without Balance, flex day | 17 | 10 | One each, one extra each to Hips & Glutes, Thighs and Back, then one extra to the 4 other areas with the longest gap |
+
+**Order on a full day.** Warm-up stretches go standing then floor, strength goes floor then standing, and cool-down stretches go standing then floor. That is 3 floor-to-standing changes across 30 exercises, one fewer than ending the cool-down standing. The second stretch block excludes everything in the first, so all 20 stretches differ.
+
+## App behavior
+
+The app has a home page, a library, a workout screen and a history list, and the workout screen is built to be driven entirely from the keyboard while casting to the TV.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /` | Today's day type, Start or Resume, and "start anyway" on rest days |
+| `POST /start` | Build a session from the selection plan and open it |
+| `GET /session/<id>` | The one-exercise-at-a-time workout screen |
+| `POST /api/items/<id>` | Save status, note and strength sets for one exercise |
+| `POST /session/<id>/finish` | Mark the session finished |
+| `GET /session/<id>/summary` | Done and skipped exercises with sets |
+| `GET /exercises` | The full library with times done and last done |
+| `GET /history` | Sessions listed by date |
+
+**Workout screen.** Each exercise shows its position (for example 7 of 30), block, name, body area, a floor or standing tag, description, dose text, any equipment note, and the image. Images load with no referrer, which avoids some hotlink blocking, and fall back to a text placeholder if they fail. The page uses a dark theme and large type for the TV.
+
+| Key | Action |
+| --- | --- |
+| Space | Mark done and go to the next exercise |
+| S | Skip and go to the next exercise |
+| Left arrow | Go back one exercise |
+| Enter | Start or pause the timer |
+| N | Jump to the note field |
+| A | Add a set row (strength) |
+| Esc | Leave a text field |
+
+Space is ignored while typing in a field, so notes and numbers are safe.
+
+**Timer.** A stretch with a `seconds` value shows a countdown. If it is marked per side, the timer runs twice with a switch-sides prompt between runs. A short beep from the browser marks the end. The timer starts on Enter rather than automatically, and it never advances the screen on its own.
+
+**Strength.** Strength exercises show rows for set, reps and weight.
+
+**Saving.** Status is saved when Space or S is pressed. Notes and sets are saved when their field loses focus. If the tab closes mid-workout, Resume opens the first exercise still pending.
+
+## Project structure
+
+The project is a flat folder of a few small Python modules, with the data, templates and tests in their own directories.
+
+```text
+workout-tracker/
+├── app.py              # Flask routes
+├── db.py               # connection, schema, history queries
+├── selection.py        # pure planning functions
+├── import_data.py      # CSV to SQLite
+├── backup.py           # copy workout.db to a backup folder
+├── config.py           # day-type rules, priority areas, weight unit
+├── requirements.txt    # flask, pytest
+├── data/
+│   ├── stretch.csv
+│   ├── strength.csv
+│   └── workout.db      # created on first run, kept out of git
+├── templates/          # base, home, workout, exercises, history, summary
+├── static/             # workout.js, style.css
+└── tests/              # test_selection.py, test_import.py, test_app.py
+```
+
+The split keeps the selection logic free of Flask and SQLite, which is what makes it testable on its own.
+
+## Testing
+
+The selection rules carry the most risk, so they get the most automated tests; the screen itself is checked by hand on the real laptop and TV. Tests use pytest and a seeded random generator so results repeat.
+
+- **Selection:** a 10-slot block over 10 areas gives one each. Extra slots reach Hips & Glutes, Thighs and Back first. The 17-slot flex block splits as described. Neck cycles through all 6 exercises before repeating while Hips & Glutes keeps serving new ones. A skipped exercise stays eligible. The second stretch block shares nothing with the first. Floor and standing exercises come out grouped. Arms & hands, with only 2 stretches, never gets more than 2.
+- **Import:** blank rows are skipped, a combined area keeps its first part, capitalization variants merge, a second run changes nothing, and a row removed from a CSV becomes inactive.
+- **App:** using Flask's test client, starting a Monday session creates 30 items split 10, 10 and 10; a Tuesday session creates 20 with 3 Balance; saving status and sets through the API persists; resume lands on the first pending item.
+- **By hand:** Space, S, Left arrow and Enter work on the real laptop; the timer counts and beeps; images load; the page reads well when cast to the TV.
+
+## Implementation plan
+
+The build is 11 small steps, each ending in something runnable that is checked before the next one starts. We work through them together in the terminal, one at a time.
+
+| Step | What we build | Done when |
+| --- | --- | --- |
+| 0. Setup | Virtual environment, Flask and pytest installed, folder, git init with a `.gitignore`, both CSVs copied into `data/` | `flask --version` runs and the two CSVs are in place |
+| 1. Schema and import | `db.py` schema and `import_data.py` with its report | The import reports 114 stretch and 119 strength; a second run changes nothing |
+| 2. Selection logic | `selection.py` and its tests | pytest passes, including the slot-allocation and rotation cases |
+| 3. Plan to session | Turn a plan into a session and its items; print today's plan in the terminal | A Monday plan prints 30 items in the right block order |
+| 4. Flask skeleton | Home page and the library page | The library lists all 233 exercises grouped by type and area |
+| 5. Workout screen | One exercise at a time with image and text; Space, S and Left arrow | A full day can be walked through, nothing saved yet |
+| 6. Saving | Status and notes saved through the API; resume | Closing and reopening the tab resumes at the right exercise |
+| 7. Strength logging | Set, reps and weight rows | Sets appear in the database |
+| 8. Timer | Countdown, per-side repeat, beep | A 30-second stretch counts down and prompts a side switch |
+| 9. Finish and history | Finish button, per-session summary, history list | A finished session shows done, skipped and sets |
+| 10. TV polish and backup | Large type, image fallback, `backup.py`, a short README | Cast to the TV is readable from the couch and a backup file is produced |
+
+## Running and backing up
+
+The app starts with two commands after a one-time setup, and the browser tab is cast to the TV. The commands below are for the Mac's Terminal.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install flask pytest
+python import_data.py
+flask --app app run
+```
+
+Then open `http://127.0.0.1:5000` in the browser and use the browser's cast option to send that tab to the TV.
+
+**Backup.** All data lives in `data/workout.db`. `python backup.py` copies it with SQLite's backup routine into a folder named by an environment variable, which can point at a Google Drive, OneDrive or Dropbox folder that already syncs. The CSV export asked for as the long-term backup format is V2.
+
+## Risks and open questions
+
+The main risks are in the data rather than the code, and none of them blocks starting.
+
+| Risk | Mitigation |
+| --- | --- |
+| Hotlinked images can disappear or block requests | Images load with no referrer and fall back to text; a later `check_images.py` can flag dead links, and V2 can download copies |
+| Some rows are incomplete: Sideways walking has no dose or floor flag | The importer warns and still imports; fix in the sheet and re-import |
+| Six descriptions or doses still contain copy-paste text such as "The article then directs you..." | Left as a later cleanup |
+| Timer values were pre-filled from dose text, using the low end of ranges | Edit `seconds` in the sheet and re-import |
+| Small areas repeat quickly: Arms & hands has only 2 stretches | Expected; adding exercises slows it down |
+| Demo images belong to other sites | Personal use only; the app is never published |
+
+**Confirmed decisions**
+
+1. Block order on full days: standing then floor, floor then standing, standing then floor.
+2. No last-logged reference on strength exercises in V1; it moves to V2.
+3. Weight is in pounds.
+4. The timer starts on Enter, not automatically.
+5. The laptop is a Mac, so the setup commands target macOS.
+6. Whole body rows with sets and reps are displayed like all other exercises: dose text, with a timer only when `seconds` is set.
