@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Exercise Library | Workout Tracker</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+  </head>
+
+  <body>
+    <main class="container">
+      <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+      </nav>
+
+      <h1>Exercise Library</h1>
+      <p>{{ exercises | length }} active exercises</p>
+
+      {% for type_group in exercises | groupby("type") %}
+        <section>
+          <h2>
+            {{ "Stretching" if type_group.grouper == "stretch" else "Strength" }}
+            ({{ type_group.list | length }})
+          </h2>
+
+          {% for area_group in type_group.list | groupby("focus") %}
+            <section>
+              <h3>
+                {{ area_group.grouper }}
+                ({{ area_group.list | length }})
+              </h3>
+
+              {% for exercise in area_group.list %}
+                <article class="card">
+                  <h4>{{ exercise["name"] }}</h4>
+
+                  <p>
+                    {{ "Floor" if exercise["on_floor"] else "Standing / not on floor" }}
+                    · Completed {{ exercise["times_done"] }} times
+                  </p>
+
+                  {% if exercise["description"] %}
+                    <p class="preserve-lines">{{ exercise["description"] }}</p>
+                  {% endif %}
+
+                  <p class="preserve-lines">
+                    Dose: {{ exercise["dose"] or "Not provided" }}
+                  </p>
+
+                  {% if exercise["equipment"] %}
+                    <p>Equipment: {{ exercise["equipment"] }}</p>
+                  {% endif %}
+
+                  {% if exercise["last_done"] %}
+                    <p>Last completed: {{ exercise["last_done"] }}</p>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </section>
+          {% endfor %}
+        </section>
+      {% else %}
+        <p>
+          No active exercises found. Run the CSV importer and refresh this page.
+        </p>
+      {% endfor %}
+    </main>
+  </body>
+</html>

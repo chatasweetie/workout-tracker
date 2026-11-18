@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workout Tracker</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/styles.css') }}"
+  >
+
+  <script
+    src="{{ url_for('static', filename='js/stretch-timer.js') }}"
+    defer
+  ></script>
+  <script
+    src="{{ url_for('static', filename='js/workout.js') }}"
+    defer
+  ></script>
+  
+</head>
+
+<body>
+  <main class="player">
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      ·
+      <a href="{{ url_for('history') }}">History</a>
+    </nav>
+
+    <p id="save-message" role="status" aria-live="polite"></p>
+
+    <section id="exercise-screen">
+      <p id="exercise-progress"></p>
+      <p id="exercise-block" class="block-label"></p>
+      <h1 id="exercise-name"></h1>
+      <p id="exercise-meta"></p>
+
+      <div class="exercise-layout">
+        <div class="exercise-media">
+          <img
+            id="exercise-image"
+            alt=""
+            referrerpolicy="no-referrer"
+            hidden
+          >
+          <p id="image-placeholder"></p>
+        </div>
+
+        <section class="exercise-details">
+          <h2>Dose</h2>
+          <p id="exercise-dose" class="preserve-lines dose"></p>
+
+          <section id="stretch-timer" class="timer-panel" hidden>
+            <h2>Stretch timer</h2>
+
+            <p id="timer-round"></p>
+
+            <div id="timer-display" class="timer-display">00:00</div>
+
+            <p id="timer-message" role="status" aria-live="polite"></p>
+
+            <div class="workout-controls">
+                <button id="timer-toggle" type="button">
+                Start timer (→)
+                </button>
+
+                <button id="timer-reset" type="button">
+                Reset timer
+                </button>
+            </div>
+            </section>
+
+          <h2>Instructions</h2>
+          <p id="exercise-description" class="preserve-lines"></p>
+
+          <p id="exercise-equipment"></p>
+          <p id="exercise-status"></p>
+
+          <fieldset id="strength-fields" hidden>
+            <legend>Actual performance — pounds</legend>
+
+            <div id="set-rows"></div>
+
+            <button id="add-set" type="button">Add set</button>
+          </fieldset>
+
+          <p>
+            <label for="exercise-note">Notes</label>
+            <textarea
+              id="exercise-note"
+              rows="3"
+              placeholder="Optional notes"
+            ></textarea>
+          </p>
+        </section>
+      </div>
+
+      <div class="workout-controls">
+        <button id="back-button" type="button">Back ←</button>
+        <button id="save-button" type="button">Save</button>
+        <button id="skip-button" type="button">Skip (S)</button>
+        <button id="complete-button" type="button">
+          Complete & Next (Space)
+        </button>
+      </div>
+
+      <p class="keyboard-help">
+        Right arrow: start/pause timer · Space: complete · S: skip ·
+        Left arrow: save and go back.
+        Each hold starts after a 2-second buffer.
+      </p>
+    </section>
+
+    <section id="finish-screen" hidden>
+      <h1>All exercises resolved</h1>
+      <p id="finish-counts"></p>
+      <p>Finish the session to add its end time and open the summary.</p>
+
+      <div class="workout-controls">
+        <button id="review-button" type="button">Review exercises</button>
+        <button id="finish-button" type="button">Finish session</button>
+      </div>
+    </section>
+  </main>
+
+  <script id="workout-data" type="application/json">
+    {{ {
+      "items": items,
+      "finish_url": url_for("finish_session", session_id=session["id"])
+    } | tojson }}
+  </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Personal Workout App</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+  </head>
+
+  <body>
+    <main class="container">
+      <p>
+        <a href="{{ url_for('exercises') }}">Browse exercise library</a>
+      </p>
+      <h1>Personal Workout App</h1>
+      <p>Your local workout planner and tracker.</p>
+
+      <p>{{ today }}</p>
+
+        {% if day_type == "rest" %}
+          <p>Today is a rest day. You can start either workout anyway.</p>
+        {% elif day_type == "full" %}
+          <p>Today’s scheduled workout: full day.</p>
+        {% else %}
+          <p>Today’s scheduled workout: flexibility.</p>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('start_session') }}">
+          <div class="workout-controls">
+            <button type="submit" name="day_type" value="full">
+              {{ "Start anyway: full day" if day_type == "rest" else "Start full day" }}
+            </button>
+
+            <button type="submit" name="day_type" value="flex">
+              {{ "Start anyway: flexibility" if day_type == "rest" else "Start flexibility" }}
+            </button>
+          </div>
+        </form>
+
+        <p>
+          Full day: 10 stretches → 10 strength → 10 different stretches.
+        </p>
+
+        <p>
+          Flexibility: 20 stretches, including 3 Balance.
+        </p>
+    <p>
+      <a href="{{ url_for('history') }}">Workout history</a>
+    </p>
+
+    {% if resumable_sessions %}
+      <section class="card">
+        <h2>Unfinished sessions</h2>
+
+        <ul>
+          {% for session in resumable_sessions %}
+            <li>
+              {{ session["date"] }} · {{ session["day_type"] }}
+              —
+              <a href="{{ url_for('workout', session_id=session['id']) }}">
+                Resume session {{ session["id"] }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <p>
+          Starting another workout creates a separate session.
+        </p>
+      </section>
+    {% endif %}
+
+    </main>
+  </body>
+</html>

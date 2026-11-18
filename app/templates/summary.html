@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workout Summary</title>
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/styles.css') }}"
+  >
+</head>
+
+<body>
+  <main class="container">
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      ·
+      <a href="{{ url_for('history') }}">History</a>
+    </nav>
+
+    <h1>Workout summary</h1>
+
+    <p>{{ session["date"] }} · {{ session["day_type"] }}</p>
+    <p>Started: {{ session["started_at"] }}</p>
+    <p>Finished: {{ session["finished_at"] or "Not finished" }}</p>
+
+    <p>
+      {{ items | selectattr("status", "equalto", "done") | list | length }}
+      completed ·
+      {{ items | selectattr("status", "equalto", "skipped") | list | length }}
+      skipped ·
+      {{ items | selectattr("status", "equalto", "pending") | list | length }}
+      pending
+    </p>
+
+    {% if not session["finished_at"] %}
+      <p>
+        <a href="{{ url_for('workout', session_id=session['id']) }}">
+          Resume session
+        </a>
+      </p>
+    {% endif %}
+
+    {% for item in items %}
+      <article class="card">
+        <h2>{{ item["position"] }}. {{ item["name"] }}</h2>
+        <p>{{ item["block"] }} · {{ item["status"] }}</p>
+
+        {% if item["note"] %}
+          <p class="preserve-lines">{{ item["note"] }}</p>
+        {% endif %}
+
+        {% if item["sets"] %}
+          <ul>
+            {% for set in item["sets"] %}
+              <li>
+                Set {{ set["set_number"] }}:
+                {{ set["reps"] if set["reps"] is not none else "—" }} reps,
+                {{ set["weight"] if set["weight"] is not none else "—" }} lb
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </main>
+</body>
+</html>
