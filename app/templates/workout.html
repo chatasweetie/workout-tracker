@@ -113,14 +113,32 @@
       </p>
     </section>
 
-    <section id="finish-screen" hidden>
-      <h1>All exercises resolved</h1>
-      <p id="finish-counts"></p>
-      <p>Finish the session to add its end time and open the summary.</p>
+    <section id="finish-screen" class="finish-panel" hidden>
+      <div
+        id="celebration"
+        class="celebration"
+        aria-hidden="true"
+      ></div>
 
-      <div class="workout-controls">
-        <button id="review-button" type="button">Review exercises</button>
-        <button id="finish-button" type="button">Finish session</button>
+      <div class="finish-content">
+        <h1 id="celebration-title">Session complete</h1>
+
+        <p id="finish-counts"></p>
+
+        <p>Your workout has been saved automatically.</p>
+
+        <div class="workout-controls">
+          <a
+            class="button-link"
+            href="{{ url_for('home') }}"
+          >
+            Return to home
+          </a>
+
+          <a href="{{ url_for('session_summary', session_id=session['id']) }}">
+            View summary
+          </a>
+        </div>
       </div>
     </section>
   </main>

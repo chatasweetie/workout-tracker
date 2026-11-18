@@ -105,6 +105,27 @@ def register_tracking_routes(app, get_db):
         if not items:
             abort(404, description="This session has no exercises.")
 
+        if all(item["status"] != "pending" for item in items):
+            conn = get_db()
+
+            with conn:
+                conn.execute(
+                    """
+                    UPDATE sessions
+                    SET finished_at = ?
+                    WHERE id = ?
+                      AND finished_at IS NULL
+                    """,
+                    (
+                        datetime.now().isoformat(timespec="seconds"),
+                        session_id,
+                    ),
+                )
+
+            return redirect(
+                url_for("session_summary", session_id=session_id)
+            )
+
         return render_template(
             "workout.html",
             session=session,
@@ -146,7 +167,7 @@ def register_tracking_routes(app, get_db):
         if note is not None and not isinstance(note, str):
             return {"error": "Notes must be text."}, 400
 
-        # A missing 'sets' field preserves existing records.
+        # Missing sets preserves existing records; an empty list clears them.
         clean_sets = None
 
         if "sets" in data:
@@ -156,7 +177,9 @@ def register_tracking_routes(app, get_db):
                 return {"error": "Sets must be a list."}, 400
 
             if item["type"] != "strength" and raw_sets:
-                return {"error": "Only strength exercises accept sets."}, 400
+                return {
+                    "error": "Only strength exercises accept sets."
+                }, 400
 
             clean_sets = []
 
@@ -166,20 +189,23 @@ def register_tracking_routes(app, get_db):
                         raise ValueError("Each set must be an object.")
 
                     reps = optional_number(
-                        row.get("reps"), "Reps", integer=True
+                        row.get("reps"),
+                        "Reps",
+                        integer=True,
                     )
                     weight = optional_number(
-                        row.get("weight"), "Weight"
+                        row.get("weight"),
+                        "Weight",
                     )
 
                     if reps is None and weight is None:
                         continue
 
                     clean_sets.append((reps, weight))
+
             except (TypeError, ValueError, OverflowError) as error:
                 return {"error": str(error)}, 400
 
-        # Preserve the timestamp when re-saving an already completed item.
         completed_at = None
 
         if status == "done":
@@ -190,18 +216,28 @@ def register_tracking_routes(app, get_db):
             )
 
         with conn:
+            # 1. Save completion/skipping and notes.
             conn.execute(
                 """
                 UPDATE session_items
                 SET status = ?, note = ?, completed_at = ?
                 WHERE id = ?
                 """,
-                (status, note, completed_at, item_id),
+                (
+                    status,
+                    note,
+                    completed_at,
+                    item_id,
+                ),
             )
 
+            # 2. Save actual strength performance.
             if clean_sets is not None:
                 conn.execute(
-                    "DELETE FROM strength_sets WHERE session_item_id = ?",
+                    """
+                    DELETE FROM strength_sets
+                    WHERE session_item_id = ?
+                    """,
                     (item_id,),
                 )
 
@@ -217,6 +253,31 @@ def register_tracking_routes(app, get_db):
                         in enumerate(clean_sets, start=1)
                     ],
                 )
+
+            # 3. Automatically finish when no pending exercises remain.
+            conn.execute(
+                """
+                UPDATE sessions
+                SET finished_at = ?
+                WHERE id = ?
+                  AND finished_at IS NULL
+                  AND EXISTS (
+                      SELECT 1
+                      FROM session_items
+                      WHERE session_id = sessions.id
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM session_items
+                      WHERE session_id = sessions.id
+                        AND status = 'pending'
+                  )
+                """,
+                (
+                    datetime.now().isoformat(timespec="seconds"),
+                    item["session_id"],
+                ),
+            )
 
         return {
             "ok": True,

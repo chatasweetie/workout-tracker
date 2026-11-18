@@ -257,16 +257,82 @@ async function saveCurrent(status, navigation = null) {
 
 function showFinish() {
   stretchTimer.stopInterval();
-  
+
   finishVisible = true;
   $("exercise-screen").hidden = true;
   $("finish-screen").hidden = false;
 
-  const done = items.filter(item => item.status === "done").length;
-  const skipped = items.filter(item => item.status === "skipped").length;
+  const done = items.filter(
+    item => item.status === "done"
+  ).length;
+
+  const skipped = items.filter(
+    item => item.status === "skipped"
+  ).length;
 
   $("finish-counts").textContent =
     `${done} completed · ${skipped} skipped`;
+
+  const titles = done === 0
+    ? ["Session saved"]
+    : [
+        "Workout complete!",
+        "You showed up!",
+        "Another session in the books!",
+        "Nice work today!",
+        "Session complete!",
+      ];
+
+  $("celebration-title").textContent =
+    titles[Math.floor(Math.random() * titles.length)];
+
+  const celebration = $("celebration");
+  celebration.replaceChildren();
+
+  // Avoid a large celebration for an entirely skipped session.
+  if (done === 0) {
+    return;
+  }
+
+  const themes = [
+    ["#fbbf24", "#fb7185", "#60a5fa", "#a78bfa"],
+    ["#34d399", "#22d3ee", "#f9fafb", "#818cf8"],
+    ["#fb923c", "#f472b6", "#fde047", "#c084fc"],
+  ];
+
+  const colors = themes[
+    Math.floor(Math.random() * themes.length)
+  ];
+
+  const shapes = ["confetti-squares", "confetti-circles"];
+  celebration.className =
+    `celebration ${shapes[Math.floor(Math.random() * shapes.length)]}`;
+
+  for (let i = 0; i < 48; i += 1) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.backgroundColor =
+      colors[Math.floor(Math.random() * colors.length)];
+
+    piece.style.setProperty(
+      "--delay",
+      `${Math.random() * 0.7}s`
+    );
+
+    piece.style.setProperty(
+      "--duration",
+      `${2.2 + Math.random() * 1.5}s`
+    );
+
+    piece.style.setProperty(
+      "--drift",
+      `${Math.random() * 160 - 80}px`
+    );
+
+    celebration.append(piece);
+  }
 }
 
 $("complete-button").addEventListener("click", () => {
@@ -292,26 +358,6 @@ $("add-set").addEventListener("click", () => {
 
 $("exercise-note").addEventListener("input", markDirty);
 $("set-rows").addEventListener("input", markDirty);
-
-$("review-button").addEventListener("click", () => {
-  index = 0;
-  render();
-});
-
-$("finish-button").addEventListener("click", async () => {
-  if (busy) return;
-
-  setBusy(true);
-  setMessage("Finishing…");
-
-  try {
-    const result = await postJSON(data.finish_url, {});
-    window.location.assign(result.redirect);
-  } catch (error) {
-    setMessage(error.message, true);
-    setBusy(false);
-  }
-});
 
 document.addEventListener("keydown", event => {
   const target = event.target;

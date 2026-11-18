@@ -1,6 +1,8 @@
 """Database setup for the workout tracker."""
 import sqlite3
 from pathlib import Path
+from datetime import datetime, timedelta
+
 
 DB_PATH = Path(__file__).parent / "data" / "workout.db"
 
@@ -65,3 +67,53 @@ def init_db(conn):
     """Create the tables if they do not exist yet. Safe to run every time."""
     conn.executescript(SCHEMA)
     conn.commit()
+
+def close_expired_sessions(conn, now=None):
+    """Close unfinished sessions started more than 24 hours ago.
+
+    Preserve completed/skipped items, notes, and strength sets.
+    Only pending items become skipped.
+    """
+    now = now or datetime.now()
+    cutoff = (now - timedelta(hours=24)).isoformat(
+        timespec="seconds"
+    )
+
+    expired = conn.execute(
+        """
+        SELECT id
+        FROM sessions
+        WHERE finished_at IS NULL
+          AND started_at < ?
+        """,
+        (cutoff,),
+    ).fetchall()
+
+    with conn:
+        for session in expired:
+            session_id = session["id"]
+
+            conn.execute(
+                """
+                UPDATE session_items
+                SET status = 'skipped', completed_at = NULL
+                WHERE session_id = ?
+                  AND status = 'pending'
+                """,
+                (session_id,),
+            )
+
+            conn.execute(
+                """
+                UPDATE sessions
+                SET finished_at = ?
+                WHERE id = ?
+                  AND finished_at IS NULL
+                """,
+                (
+                    now.isoformat(timespec="seconds"),
+                    session_id,
+                ),
+            )
+
+    return len(expired)

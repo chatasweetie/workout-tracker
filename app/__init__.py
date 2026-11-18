@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import (
     Flask,
@@ -11,7 +11,12 @@ from flask import (
 )
 
 import config
-from db import DB_PATH, get_connection, init_db
+from db import (
+    DB_PATH,
+    close_expired_sessions,
+    get_connection,
+    init_db,
+)
 from selection import day_type_for_weekday, make_rng, plan_day
 from app.tracking import register_tracking_routes
 
@@ -43,22 +48,35 @@ def create_app(test_config=None):
 
     @app.get("/")
     def home():
-        today = datetime.now().date()
+        now = datetime.now()
+        today = now.date()
+        yesterday = today - timedelta(days=1)
 
-        resumable_sessions = get_db().execute(
+        conn = get_db()
+        expired_count = close_expired_sessions(conn, now)
+
+        resumable_sessions = conn.execute(
             """
-            SELECT id, date, day_type
+            SELECT id, date, day_type, started_at
             FROM sessions
             WHERE finished_at IS NULL
+              AND date = ?
             ORDER BY id DESC
-            """
+            """,
+            (yesterday.isoformat(),),
         ).fetchall()
+
+        # Avoid a leading zero on single-digit dates.
+        display_date = (
+            f"{today.strftime('%A %b')} {today.day}"
+        )
 
         return render_template(
             "index.html",
-            today=today.isoformat(),
+            today=display_date,
             day_type=day_type_for_weekday(today.weekday()),
             resumable_sessions=resumable_sessions,
+            expired_count=expired_count,
         )
 
     @app.post("/start")

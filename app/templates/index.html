@@ -1,80 +1,87 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Personal Workout App</title>
+  <title>Workout Tracker</title>
 
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/styles.css') }}"
-    >
-  </head>
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/styles.css') }}"
+  >
+</head>
 
-  <body>
-    <main class="container">
+<body>
+  <main class="container">
+    <h1>Workout Tracker</h1>
+    <p class="home-date">{{ today }}</p>
+
+    {% if day_type == "rest" %}
+      <p>Today is a rest day. Start either workout if you choose.</p>
+    {% else %}
       <p>
-        <a href="{{ url_for('exercises') }}">Browse exercise library</a>
+        Today’s scheduled workout:
+        <strong>
+          {{ "full day" if day_type == "full" else "flexibility" }}
+        </strong>.
       </p>
-      <h1>Personal Workout App</h1>
-      <p>Your local workout planner and tracker.</p>
+    {% endif %}
 
-      <p>{{ today }}</p>
+    <form method="post" action="{{ url_for('start_session') }}">
+      <div class="workout-controls home-start-controls">
+        <button
+          type="submit"
+          name="day_type"
+          value="full"
+          class="{{ 'scheduled-workout' if day_type == 'full' else 'secondary-workout' }}"
+        >
+          {{ "Start anyway: full day" if day_type == "rest" else "Start full day" }}
+        </button>
 
-        {% if day_type == "rest" %}
-          <p>Today is a rest day. You can start either workout anyway.</p>
-        {% elif day_type == "full" %}
-          <p>Today’s scheduled workout: full day.</p>
-        {% else %}
-          <p>Today’s scheduled workout: flexibility.</p>
-        {% endif %}
+        <button
+          type="submit"
+          name="day_type"
+          value="flex"
+          class="{{ 'scheduled-workout' if day_type == 'flex' else 'secondary-workout' }}"
+        >
+          {{ "Start anyway: flexibility" if day_type == "rest" else "Start flexibility" }}
+        </button>
+      </div>
+    </form>
 
-        <form method="post" action="{{ url_for('start_session') }}">
-          <div class="workout-controls">
-            <button type="submit" name="day_type" value="full">
-              {{ "Start anyway: full day" if day_type == "rest" else "Start full day" }}
-            </button>
+    <p>Full day: 10 stretches → 10 strength → 10 different stretches.</p>
+    <p>Flexibility: 20 stretches, including 3 Balance.</p>
 
-            <button type="submit" name="day_type" value="flex">
-              {{ "Start anyway: flexibility" if day_type == "rest" else "Start flexibility" }}
-            </button>
-          </div>
-        </form>
-
-        <p>
-          Full day: 10 stretches → 10 strength → 10 different stretches.
-        </p>
-
-        <p>
-          Flexibility: 20 stretches, including 3 Balance.
-        </p>
-    <p>
-      <a href="{{ url_for('history') }}">Workout history</a>
-    </p>
+    {% if expired_count %}
+      <p role="status">
+        Closed {{ expired_count }} session(s) older than 24 hours.
+        Remaining pending exercises were marked skipped.
+      </p>
+    {% endif %}
 
     {% if resumable_sessions %}
       <section class="card">
-        <h2>Unfinished sessions</h2>
+        <h2>Unfinished sessions from yesterday</h2>
 
         <ul>
           {% for session in resumable_sessions %}
             <li>
-              {{ session["date"] }} · {{ session["day_type"] }}
-              —
+              {{ session["day_type"] }} —
               <a href="{{ url_for('workout', session_id=session['id']) }}">
                 Resume session {{ session["id"] }}
               </a>
             </li>
           {% endfor %}
         </ul>
-
-        <p>
-          Starting another workout creates a separate session.
-        </p>
       </section>
     {% endif %}
 
-    </main>
-  </body>
+    <nav class="home-links">
+      <a href="{{ url_for('exercises') }}">Exercise library</a>
+      ·
+      <a href="{{ url_for('history') }}">Workout history</a>
+    </nav>
+  </main>
+</body>
 </html>
