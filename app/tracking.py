@@ -327,10 +327,32 @@ def register_tracking_routes(app, get_db):
 
     @app.get("/session/<int:session_id>/summary")
     def session_summary(session_id):
+        session = load_session(session_id)
+
+        session_date = datetime.fromisoformat(
+            session["date"]
+        ).date()
+
+        display_date = (
+            f"{session_date.strftime('%A, %b')} "
+            f"{session_date.day}, {session_date.year}"
+        )
+
+        def display_time(value):
+            if not value:
+                return "Not finished"
+
+            timestamp = datetime.fromisoformat(value)
+
+            return timestamp.strftime("%I:%M %p").lstrip("0").lower()
+
         return render_template(
             "summary.html",
-            session=load_session(session_id),
+            session=session,
             items=load_items(session_id),
+            display_date=display_date,
+            started_time=display_time(session["started_at"]),
+            finished_time=display_time(session["finished_at"]),
         )
 
     @app.get("/history")

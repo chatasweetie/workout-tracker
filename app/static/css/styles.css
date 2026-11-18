@@ -334,3 +334,29 @@ fieldset {
     animation: none;
   }
 }
+
+.workout-status-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.workout-status-bar p {
+  margin: 0;
+}
+
+.workout-status-bar #save-message {
+  min-height: 1.6em;
+  overflow-wrap: anywhere;
+}
+
+.workout-status-bar #exercise-progress {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.workout-status-bar #exercise-block {
+  text-align: right;
+}

@@ -29,11 +29,18 @@
       <a href="{{ url_for('history') }}">History</a>
     </nav>
 
-    <p id="save-message" role="status" aria-live="polite"></p>
+    <div class="workout-status-bar">
+    <p
+      id="save-message"
+      role="status"
+      aria-live="polite"
+    ></p>
 
-    <section id="exercise-screen">
-      <p id="exercise-progress"></p>
-      <p id="exercise-block" class="block-label"></p>
+    <p id="exercise-progress"></p>
+    <p id="exercise-block" class="block-label"></p>
+  </div>
+
+  <section id="exercise-screen">
       <h1 id="exercise-name"></h1>
       <p id="exercise-meta"></p>
 
@@ -76,7 +83,6 @@
           <p id="exercise-description" class="preserve-lines"></p>
 
           <p id="exercise-equipment"></p>
-          <p id="exercise-status"></p>
 
           <fieldset id="strength-fields" hidden>
             <legend>Actual performance — pounds</legend>

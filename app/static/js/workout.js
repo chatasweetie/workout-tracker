@@ -99,6 +99,10 @@ function markDirty() {
 }
 
 function render() {
+
+  $("exercise-progress").hidden = false;
+  $("exercise-block").hidden = false;
+
   finishVisible = false;
   $("exercise-screen").hidden = false;
   $("finish-screen").hidden = true;
@@ -118,7 +122,6 @@ function render() {
     item.description || "No description provided.";
   $("exercise-equipment").textContent =
     item.equipment ? `Equipment: ${item.equipment}` : "";
-  $("exercise-status").textContent = `Saved status: ${item.status}`;
   $("exercise-note").value = item.note || "";
 
   $("strength-fields").hidden = item.type !== "strength";
@@ -244,9 +247,6 @@ async function saveCurrent(status, navigation = null) {
         index = items.findIndex(row => row.status === "pending");
         render();
       }
-    } else {
-      $("exercise-status").textContent =
-        `Saved status: ${item.status}`;
     }
   } catch (error) {
     setMessage(error.message, true);
@@ -256,6 +256,9 @@ async function saveCurrent(status, navigation = null) {
 }
 
 function showFinish() {
+  $("exercise-progress").hidden = true;
+  $("exercise-block").hidden = true;
+
   stretchTimer.stopInterval();
 
   finishVisible = true;

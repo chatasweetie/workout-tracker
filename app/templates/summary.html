@@ -20,9 +20,14 @@
 
     <h1>Workout summary</h1>
 
-    <p>{{ session["date"] }} · {{ session["day_type"] }}</p>
-    <p>Started: {{ session["started_at"] }}</p>
-    <p>Finished: {{ session["finished_at"] or "Not finished" }}</p>
+    <p>{{ display_date }}</p>
+
+    <p>
+      {{ "Full day" if session["day_type"] == "full" else "Flexibility" }}
+    </p>
+
+    <p>Started: {{ started_time }}</p>
+    <p>Finished: {{ finished_time }}</p>
 
     <p>
       {{ items | selectattr("status", "equalto", "done") | list | length }}
