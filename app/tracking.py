@@ -23,6 +23,7 @@ def register_tracking_routes(app, get_db):
             """
             SELECT
                 si.id AS item_id,
+                si.exercise_id,
                 si.position,
                 si.block,
                 si.status,
@@ -49,6 +50,25 @@ def register_tracking_routes(app, get_db):
 
         for row in rows:
             item = dict(row)
+            item["review_url"] = url_for(
+                "create_exercise_review",
+                item_id=item["item_id"],
+            )
+
+            item["reviews"] = [
+                dict(review)
+                for review in conn.execute(
+                    """
+                    SELECT id, note, created_at
+                    FROM exercise_review_notes
+                    WHERE exercise_id = ?
+                      AND resolved_at IS NULL
+                    ORDER BY created_at DESC, id DESC
+                    """,
+                    (item["exercise_id"],),
+                ).fetchall()
+            ]
+            
             item["sets"] = [
                 dict(record)
                 for record in conn.execute(

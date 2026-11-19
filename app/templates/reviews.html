@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Exercise Reviews</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/styles.css') }}"
+  >
+</head>
+
+<body>
+  <main class="container">
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      ·
+      <a href="{{ url_for('exercises') }}">Exercise library</a>
+    </nav>
+
+    <h1>Exercise reviews</h1>
+
+    <p>
+      Make corrections in your CSV files, reimport them,
+      then mark the relevant notes resolved.
+    </p>
+
+    <nav>
+      <a
+        href="{{ url_for('exercise_reviews', status='open') }}"
+        {% if status == "open" %}aria-current="page"{% endif %}
+      >
+        Open
+      </a>
+      ·
+      <a
+        href="{{ url_for('exercise_reviews', status='resolved') }}"
+        {% if status == "resolved" %}aria-current="page"{% endif %}
+      >
+        Resolved
+      </a>
+    </nav>
+
+    <p>{{ reviews | length }} {{ status }} note(s)</p>
+
+    {% for review in reviews %}
+      <article class="card">
+        <h2>{{ review["name"] }}</h2>
+
+        <p>
+          {{ "Stretch" if review["type"] == "stretch" else "Strength" }}
+          · {{ review["focus"] }}
+          {% if not review["active"] %}
+            · Inactive exercise
+          {% endif %}
+        </p>
+
+        <p class="preserve-lines">{{ review["note"] }}</p>
+
+        <p>
+          Added: {{ review["created_at"].replace("T", " ") }}
+        </p>
+
+        {% if review["resolved_at"] %}
+          <p>
+            Resolved: {{ review["resolved_at"].replace("T", " ") }}
+          </p>
+        {% else %}
+          <form
+            method="post"
+            action="{{ url_for('resolve_exercise_review', review_id=review['id']) }}"
+          >
+            <button type="submit">Mark resolved</button>
+          </form>
+        {% endif %}
+      </article>
+    {% else %}
+      <p>No {{ status }} notes.</p>
+    {% endfor %}
+  </main>
+</body>
+</html>

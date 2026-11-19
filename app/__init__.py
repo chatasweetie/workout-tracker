@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from app.reviews import register_review_routes
+
 
 from flask import (
     Flask,
@@ -222,6 +224,7 @@ def create_app(test_config=None):
             exercises=rows,
         )
 
+    register_review_routes(app, get_db)
     register_tracking_routes(app, get_db)
 
     return app

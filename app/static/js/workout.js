@@ -122,7 +122,8 @@ function render() {
     item.description || "No description provided.";
   $("exercise-equipment").textContent =
     item.equipment ? `Equipment: ${item.equipment}` : "";
-  $("exercise-note").value = item.note || "";
+  $("exercise-note").value = "";
+renderOpenExerciseNotes(item);
 
   $("strength-fields").hidden = item.type !== "strength";
   $("set-rows").replaceChildren();
@@ -211,9 +212,9 @@ async function saveCurrent(status, navigation = null) {
   }
 
   const item = items[index];
+
   const payload = {
     status: status ?? item.status,
-    note: $("exercise-note").value,
     sets: readSets(),
   };
 
@@ -223,15 +224,18 @@ async function saveCurrent(status, navigation = null) {
   setMessage("Saving…");
 
   try {
+    // Exercise notes are independent of workout performance.
+    // Save them first, before an action can finish the session.
+    await persistExerciseNote(item);
+
     const result = await postJSON(item.save_url, payload);
 
     item.status = result.status;
-    item.note = payload.note;
     item.sets = payload.sets.filter(
       row => row.reps !== "" || row.weight !== ""
     );
-    dirty = false;
 
+    dirty = false;
     setMessage("Saved.");
 
     if (navigation === "back") {
@@ -398,3 +402,42 @@ window.addEventListener("beforeunload", event => {
     event.returnValue = "";
   }
 });
+
+function renderOpenExerciseNotes(item) {
+  const list = $("exercise-open-reviews");
+  list.replaceChildren();
+
+  if (!item.reviews.length) {
+    const entry = document.createElement("li");
+    entry.textContent = "No open notes.";
+    list.append(entry);
+    return;
+  }
+
+  for (const review of item.reviews) {
+    const entry = document.createElement("li");
+    entry.className = "preserve-lines";
+    entry.textContent = review.note;
+    list.append(entry);
+  }
+}
+
+async function persistExerciseNote(item) {
+  const note = $("exercise-note").value.trim();
+
+  if (!note) {
+    return;
+  }
+
+  const result = await postJSON(item.review_url, {note});
+
+  for (const candidate of items) {
+    if (candidate.exercise_id === item.exercise_id) {
+      candidate.reviews.unshift(result.review);
+    }
+  }
+
+  // Clear only after the server confirms the note was saved.
+  $("exercise-note").value = "";
+  renderOpenExerciseNotes(item);
+}

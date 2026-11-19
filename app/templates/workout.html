@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Workout Tracker</title>
 
   <link
@@ -14,11 +15,11 @@
     src="{{ url_for('static', filename='js/stretch-timer.js') }}"
     defer
   ></script>
+
   <script
     src="{{ url_for('static', filename='js/workout.js') }}"
     defer
   ></script>
-  
 </head>
 
 <body>
@@ -30,17 +31,18 @@
     </nav>
 
     <div class="workout-status-bar">
-    <p
-      id="save-message"
-      role="status"
-      aria-live="polite"
-    ></p>
+      <p
+        id="save-message"
+        role="status"
+        aria-live="polite"
+      ></p>
 
-    <p id="exercise-progress"></p>
-    <p id="exercise-block" class="block-label"></p>
-  </div>
+      <p id="exercise-progress"></p>
 
-  <section id="exercise-screen">
+      <p id="exercise-block" class="block-label"></p>
+    </div>
+
+    <section id="exercise-screen">
       <h1 id="exercise-name"></h1>
       <p id="exercise-meta"></p>
 
@@ -52,6 +54,7 @@
             referrerpolicy="no-referrer"
             hidden
           >
+
           <p id="image-placeholder"></p>
         </div>
 
@@ -64,20 +67,26 @@
 
             <p id="timer-round"></p>
 
-            <div id="timer-display" class="timer-display">00:00</div>
+            <div id="timer-display" class="timer-display">
+              00:00
+            </div>
 
-            <p id="timer-message" role="status" aria-live="polite"></p>
+            <p
+              id="timer-message"
+              role="status"
+              aria-live="polite"
+            ></p>
 
             <div class="workout-controls">
-                <button id="timer-toggle" type="button">
+              <button id="timer-toggle" type="button">
                 Start timer (→)
-                </button>
+              </button>
 
-                <button id="timer-reset" type="button">
+              <button id="timer-reset" type="button">
                 Reset timer
-                </button>
+              </button>
             </div>
-            </section>
+          </section>
 
           <h2>Instructions</h2>
           <p id="exercise-description" class="preserve-lines"></p>
@@ -89,28 +98,63 @@
 
             <div id="set-rows"></div>
 
-            <button id="add-set" type="button">Add set</button>
+            <button id="add-set" type="button">
+              Add set
+            </button>
           </fieldset>
-
-          <p>
-            <label for="exercise-note">Notes</label>
-            <textarea
-              id="exercise-note"
-              rows="3"
-              placeholder="Optional notes"
-            ></textarea>
-          </p>
         </section>
       </div>
 
       <div class="workout-controls">
-        <button id="back-button" type="button">Back ←</button>
-        <button id="save-button" type="button">Save</button>
-        <button id="skip-button" type="button">Skip (S)</button>
+        <button id="back-button" type="button">
+          Back ←
+        </button>
+
+        <button id="save-button" type="button">
+          Save
+        </button>
+
+        <button id="skip-button" type="button">
+          Skip (S)
+        </button>
+
         <button id="complete-button" type="button">
           Complete & Next (Space)
         </button>
       </div>
+
+      <section class="exercise-review-panel">
+        <h2>Exercise notes</h2>
+
+        <p class="field-help">
+          Flag a category, dose, image, or personal suitability issue.
+          Notes stay with this exercise for review later.
+        </p>
+
+        <label for="exercise-note">Add a note</label>
+
+        <textarea
+          id="exercise-note"
+          rows="3"
+          maxlength="5000"
+          placeholder="For example: this belongs in strength, not stretching."
+        ></textarea>
+
+        <p class="field-help">
+          Saved with Save, Complete, Skip, or Back.
+        </p>
+
+        <h3>Open notes for this exercise</h3>
+        <ul id="exercise-open-reviews"></ul>
+
+        <a
+          href="{{ url_for('exercise_reviews') }}"
+          target="_blank"
+          rel="noopener"
+        >
+          Open exercise reviews
+        </a>
+      </section>
 
       <p class="keyboard-help">
         Right arrow: start/pause timer · Space: complete · S: skip ·
@@ -141,7 +185,9 @@
             Return to home
           </a>
 
-          <a href="{{ url_for('session_summary', session_id=session['id']) }}">
+          <a
+            href="{{ url_for('session_summary', session_id=session['id']) }}"
+          >
             View summary
           </a>
         </div>

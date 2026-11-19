@@ -50,6 +50,19 @@ CREATE TABLE IF NOT EXISTS strength_sets (
   reps INTEGER,
   weight REAL
 );
+
+CREATE TABLE IF NOT EXISTS exercise_review_notes (
+  id INTEGER PRIMARY KEY,
+  exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+  session_item_id INTEGER REFERENCES session_items(id),
+  note TEXT NOT NULL CHECK (length(trim(note)) > 0),
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_exercise_reviews_open
+ON exercise_review_notes (exercise_id, resolved_at);
+
 """
 
 

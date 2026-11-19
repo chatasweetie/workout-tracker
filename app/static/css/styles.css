@@ -360,3 +360,20 @@ fieldset {
 .workout-status-bar #exercise-block {
   text-align: right;
 }
+
+.exercise-review-panel {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px solid #fbbf24;
+  border-radius: 12px;
+  background: #292114;
+}
+
+.field-help {
+  color: #d1d5db;
+  font-size: 1rem;
+}
+
+#exercise-open-reviews li {
+  margin-bottom: 12px;
+}
