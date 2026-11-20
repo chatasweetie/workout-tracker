@@ -4,6 +4,29 @@ from datetime import datetime
 from flask import abort, redirect, render_template, request, url_for
 
 
+def optional_number(value, label, integer=False):
+    if value is None or value == "":
+        return None
+
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a number.")
+
+    number = float(value)
+
+    if not math.isfinite(number):
+        raise ValueError(f"{label} must be a finite number.")
+
+    if integer:
+        if number <= 0 or not number.is_integer():
+            raise ValueError(f"{label} must be a positive whole number.")
+        return int(number)
+
+    if number < 0:
+        raise ValueError(f"{label} cannot be negative.")
+
+    return number
+
+
 def register_tracking_routes(app, get_db):
     def load_session(session_id):
         session = get_db().execute(
@@ -88,28 +111,6 @@ def register_tracking_routes(app, get_db):
             items.append(item)
 
         return items
-
-    def optional_number(value, label, integer=False):
-        if value is None or value == "":
-            return None
-
-        if isinstance(value, bool):
-            raise ValueError(f"{label} must be a number.")
-
-        number = float(value)
-
-        if not math.isfinite(number):
-            raise ValueError(f"{label} must be a finite number.")
-
-        if integer:
-            if number <= 0 or not number.is_integer():
-                raise ValueError(f"{label} must be a positive whole number.")
-            return int(number)
-
-        if number < 0:
-            raise ValueError(f"{label} cannot be negative.")
-
-        return number
 
     @app.get("/session/<int:session_id>")
     def workout(session_id):
@@ -385,7 +386,8 @@ def register_tracking_routes(app, get_db):
 
     @app.get("/history")
     def history():
-        sessions = get_db().execute(
+        conn = get_db()
+        sessions = conn.execute(
             """
             SELECT
                 s.*,
@@ -399,8 +401,22 @@ def register_tracking_routes(app, get_db):
             FROM sessions AS s
             LEFT JOIN session_items AS si ON si.session_id = s.id
             GROUP BY s.id
-            ORDER BY s.id DESC
             """
         ).fetchall()
 
-        return render_template("history.html", sessions=sessions)
+        activities = conn.execute("SELECT * FROM activity_logs").fetchall()
+        entries = [
+            {**dict(session), "kind": "workout", "recorded_at": session["started_at"]}
+            for session in sessions
+        ]
+        entries.extend(
+            {**dict(activity), "kind": "activity", "recorded_at": activity["created_at"]}
+            for activity in activities
+        )
+        entries.sort(
+            key=lambda entry: (
+                entry["date"], entry["recorded_at"], entry["kind"], entry["id"],
+            ),
+            reverse=True,
+        )
+        return render_template("history.html", entries=entries)

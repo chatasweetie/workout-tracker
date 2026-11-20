@@ -61,6 +61,12 @@
     <p>Full day: 10 stretches → 10 strength → 10 different stretches.</p>
     <p>Flexibility: 20 stretches, including 3 Balance.</p>
 
+    <section class="card">
+      <h2>Walk / Run / Bike</h2>
+      <p>Track the date, duration, and distance of other activities.</p>
+      <a href="{{ url_for('activity_log') }}">Log a walk, run, or bike ride</a>
+    </section>
+
     {% if expired_count %}
       <p role="status">
         Closed {{ expired_count }} session(s) older than 24 hours.

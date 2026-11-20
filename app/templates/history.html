@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Workout History</title>
+  <title>Workout and Activity History</title>
   <link
     rel="stylesheet"
     href="{{ url_for('static', filename='css/styles.css') }}"
@@ -12,34 +12,43 @@
 
 <body>
   <main class="container">
-    <a href="{{ url_for('home') }}">Home</a>
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      · <a href="{{ url_for('activity_log') }}">Log a walk, run, or bike ride</a>
+    </nav>
 
-    <h1>Workout history</h1>
+    <h1>Workout and activity history</h1>
+    <p>Workout sessions, walks, runs, and bike rides, newest date first.</p>
 
-    {% for session in sessions %}
+    {% for entry in entries %}
       <article class="card">
-        <h2>{{ session["date"] }} · {{ session["day_type"] }}</h2>
+        {% if entry["kind"] == "activity" %}
+          <h2>{{ entry["date"] }} · {{ entry["activity_type"] | capitalize }}</h2>
+          <p>{{ entry["duration_minutes"] }} minutes · {{ entry["distance_miles"] }} miles</p>
+        {% else %}
+          <h2>{{ entry["date"] }} · {{ entry["day_type"] }}</h2>
 
-        <p>
-          {{ "Finished" if session["finished_at"] else "Unfinished" }}
-          · {{ session["done_count"] }} completed
-          · {{ session["skipped_count"] }} skipped
-          · {{ session["pending_count"] }} pending
-        </p>
+          <p>
+            {{ "Finished" if entry["finished_at"] else "Unfinished" }}
+            · {{ entry["done_count"] }} completed
+            · {{ entry["skipped_count"] }} skipped
+            · {{ entry["pending_count"] }} pending
+          </p>
 
-        <a href="{{ url_for('session_summary', session_id=session['id']) }}">
-          View summary
-        </a>
-
-        {% if not session["finished_at"] %}
-          ·
-          <a href="{{ url_for('workout', session_id=session['id']) }}">
-            Resume
+          <a href="{{ url_for('session_summary', session_id=entry['id']) }}">
+            View summary
           </a>
+
+          {% if not entry["finished_at"] %}
+            ·
+            <a href="{{ url_for('workout', session_id=entry['id']) }}">
+              Resume
+            </a>
+          {% endif %}
         {% endif %}
       </article>
     {% else %}
-      <p>No workouts recorded yet.</p>
+      <p>No workouts or activities recorded yet.</p>
     {% endfor %}
   </main>
 </body>

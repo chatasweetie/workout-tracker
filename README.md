@@ -17,6 +17,7 @@ It runs on a laptop in a browser. The browser or laptop display can be mirrored 
 - Run stretching timers with preparation and side-switch buffers.
 - Record completed and skipped exercises.
 - Log actual strength sets, reps, and weight in pounds.
+- Log walks, runs, and bike rides with a date, duration, and distance.
 - Save exercise-review notes for later corrections.
 - Automatically finish sessions when every exercise is completed or skipped.
 - View workout summaries and history.
@@ -261,6 +262,26 @@ Saving replaces the existing set records for that exercise occurrence rather tha
 
 Weight may be zero. Reps, when entered, must be positive whole numbers.
 
+## Walk / Run / Bike Logging
+
+On the homepage, choose **Log a walk, run, or bike ride**.
+
+Each entry records:
+
+- Activity: Walk, Run, or Bike.
+- Date, defaulting to today; past dates can also be entered.
+- Duration in minutes, greater than zero.
+- Distance in miles, including zero.
+
+All fields are required, and duration and distance accept decimals. Saved
+activities appear on the same page and alongside workout sessions in History,
+newest date first. Multiple activities can be recorded on the same day.
+
+These entries are separate from guided workout sessions and do not affect
+exercise rotation or completion counts. They are stored in the same SQLite
+database and included in its backups. No CSV import or export is needed.
+This version supports adding and viewing activities, not editing or deleting them.
+
 ## Exercise Notes and Reviews
 
 The workout player has one notes section, used for exercise-level corrections and personal adjustments.
@@ -429,7 +450,10 @@ Times use 12-hour format:
 9:05 am
 ```
 
-History lists sessions with summary links and Resume links for unfinished sessions.
+History combines workout sessions and Walk / Run / Bike entries, newest date first.
+Within a date, entries are ordered by when the session was started or the activity
+was recorded. Workout sessions retain summary links and Resume links for unfinished
+sessions. Activity entries show their type, duration in minutes, and distance in miles.
 
 ## Exercise CSV Format
 
@@ -491,6 +515,7 @@ The application uses these tables:
 | `session_items` | Planned sequence and saved exercise outcomes |
 | `strength_sets` | Actual strength performance |
 | `exercise_review_notes` | Exercise corrections and review status |
+| `activity_logs` | Walk, run, and bike dates, minutes, and miles |
 
 Completion counts and last-completed values are derived from saved exercise outcomes.
 
@@ -509,10 +534,12 @@ health-tracker/
 ├── app/
 │   ├── __init__.py
 │   ├── tracking.py
+│   ├── activities.py
 │   ├── reviews.py
 │   ├── exercise_editing.py
 │   ├── templates/
 │   │   ├── index.html
+│   │   ├── activities.html
 │   │   ├── exercises.html
 │   │   ├── edit_exercise.html
 │   │   ├── workout.html
@@ -551,7 +578,7 @@ Run tests from the repository root:
 python -m pytest
 ```
 
-Selection, backup/restore, and exercise editing/synchronization tests are
+Selection, activity logging, backup/restore, and exercise editing/synchronization tests are
 implemented. Broader import, tracking, review, and expiration coverage should
 be verified or expanded as the project develops.
 
@@ -567,6 +594,7 @@ be verified or expanded as the project develops.
 - [ ] Save an exercise note and find it on the review page.
 - [ ] Resolve a review note.
 - [ ] Edit and rename an exercise in the app, then verify the CSV and history.
+- [ ] Log a walk, run, and bike ride and verify dates, minutes, and miles after refreshing.
 - [ ] Finish a session and inspect its summary.
 - [ ] Verify expired-session cleanup using test data.
 - [ ] Test readability and controls on the TV.
@@ -636,15 +664,15 @@ Keep a copy outside the laptop for protection against disk loss.
    cp backups/workout-YYYYMMDD-HHMMSS-XXXXXXXX.db data/workout.db
    ```
 
-5. Restart the app and check History and Exercise reviews. Reimporting the CSVs
+5. Restart the app and check History, Exercise reviews, and the Walk / Run / Bike log. Reimporting the CSVs
    is not necessary to restore a backup.
 
 Restoring replaces all current data with the snapshot, including the exercise
 catalog. Changes made after that snapshot are not included.
 
-The database contains workout history, performance records, and exercise-review notes. Preserve it before destructive resets or database changes.
+The database contains workout history, performance records, activity logs, and exercise-review notes. Preserve it before destructive resets or database changes.
 
-Source CSVs can rebuild the exercise catalog, but they cannot restore workout history or review notes.
+Source CSVs can rebuild the exercise catalog, but they cannot restore workout history, activity logs, or review notes.
 
 Keep local databases and backup files out of Git.
 

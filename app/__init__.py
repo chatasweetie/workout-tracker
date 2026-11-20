@@ -3,6 +3,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from app.reviews import register_review_routes
 from app.exercise_editing import register_exercise_edit_routes
+from app.activities import register_activity_routes
 
 
 from flask import (
@@ -242,5 +243,6 @@ def create_app(test_config=None):
     register_review_routes(app, get_db)
     register_tracking_routes(app, get_db)
     register_exercise_edit_routes(app, get_db)
+    register_activity_routes(app, get_db)
 
     return app

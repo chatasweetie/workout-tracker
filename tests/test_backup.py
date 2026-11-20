@@ -37,6 +37,11 @@ def test_backup_restores_all_tables_from_live_wal_database(tmp_path):
                    (exercise_id, session_item_id, note, created_at)
                VALUES (1, 1, 'Check demo', '2026-11-20T10:01:00')"""
         )
+        source.execute(
+            """INSERT INTO activity_logs
+                   (activity_type, date, duration_minutes, distance_miles, created_at)
+               VALUES ('walk', '2026-11-20', 30.5, 1.25, '2026-11-20T11:00:00')"""
+        )
         source.commit()
         expected = list(source.iterdump())
         source.execute("UPDATE strength_sets SET weight = 99")

@@ -171,7 +171,9 @@ textarea {
 }
 
 .exercise-edit-form input:not([type="checkbox"]):not([type="hidden"]),
-.exercise-edit-form select {
+.exercise-edit-form select,
+.activity-log-form input,
+.activity-log-form select {
   display: block;
   width: 100%;
   margin-top: 8px;

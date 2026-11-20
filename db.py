@@ -63,6 +63,15 @@ CREATE TABLE IF NOT EXISTS exercise_review_notes (
 CREATE INDEX IF NOT EXISTS idx_exercise_reviews_open
 ON exercise_review_notes (exercise_id, resolved_at);
 
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id INTEGER PRIMARY KEY,
+  activity_type TEXT NOT NULL CHECK (activity_type IN ('walk','run','bike')),
+  date TEXT NOT NULL,
+  duration_minutes REAL NOT NULL CHECK (duration_minutes > 0),
+  distance_miles REAL NOT NULL CHECK (distance_miles >= 0),
+  created_at TEXT NOT NULL
+);
+
 """
 
 
