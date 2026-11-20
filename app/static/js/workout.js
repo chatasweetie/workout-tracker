@@ -215,8 +215,9 @@ async function saveCurrent(status, navigation = null) {
 
   const payload = {
     status: status ?? item.status,
-    sets: readSets(),
+    type: item.type,
   };
+  if (item.type === "strength") payload.sets = readSets();
 
   stretchTimer.pause();
 
@@ -231,9 +232,11 @@ async function saveCurrent(status, navigation = null) {
     const result = await postJSON(item.save_url, payload);
 
     item.status = result.status;
-    item.sets = payload.sets.filter(
-      row => row.reps !== "" || row.weight !== ""
-    );
+    if (payload.sets) {
+      item.sets = payload.sets.filter(
+        row => row.reps !== "" || row.weight !== ""
+      );
+    }
 
     dirty = false;
     setMessage("Saved.");

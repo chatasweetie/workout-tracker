@@ -178,6 +178,11 @@ def register_tracking_routes(app, get_db):
         if not isinstance(data, dict):
             return {"error": "Expected a JSON object."}, 400
 
+        if "type" in data and data["type"] != item["type"]:
+            return {
+                "error": "This exercise changed type. Reload the workout before saving."
+            }, 409
+
         status = data.get("status", item["status"])
         note = data.get("note", item["note"])
 
@@ -225,6 +230,9 @@ def register_tracking_routes(app, get_db):
 
             except (TypeError, ValueError, OverflowError) as error:
                 return {"error": str(error)}, 400
+
+            if item["type"] != "strength":
+                clean_sets = None
 
         completed_at = None
 

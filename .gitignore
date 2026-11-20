@@ -5,4 +5,5 @@ data/workout.db
 data/workout.db-wal
 data/workout.db-shm
 backups/
+data/.*.csv-edit-*
 .DS_Store

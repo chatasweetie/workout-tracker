@@ -10,6 +10,7 @@ It runs on a laptop in a browser. The browser or laptop display can be mirrored 
 
 - Import stretching and strength exercises from two CSV files.
 - Browse exercises by type and body area.
+- Edit exercise details in the app and save to both SQLite and the source CSV.
 - Generate workouts using a weekday schedule.
 - Rotate exercise selection using completion history.
 - Display one exercise at a time with instructions, dose, and demonstration image.
@@ -278,9 +279,11 @@ These are not session-performance notes.
 1. Enter a note during a workout.
 2. Use Save, Complete, Skip, or Back.
 3. Find the saved note on the Exercise reviews page.
-4. Make the correction in the source CSV.
-5. Reimport the CSV files.
-6. Mark the note resolved.
+4. Click Edit exercise and save the correction.
+5. Mark the note resolved.
+
+Edits made in the app update the database and CSV together; no reimport is needed.
+Inactive exercises still require correcting the source CSV and reimporting.
 
 Open notes appear when that exercise is displayed in a later workout.
 
@@ -300,9 +303,69 @@ If a note saves but the workout outcome fails:
 
 The importer identifies exercises by type and name.
 
-Renaming an exercise or moving it between the stretch and strength CSVs creates a new exercise record and deactivates the old one.
+Renaming an exercise directly in a CSV or moving it between the stretch and
+strength CSVs creates a new exercise record and deactivates the old one.
+Renaming or changing type through the app preserves the existing record and its history.
 
 Existing reviews and workout history remain attached to the old record. Reviews for inactive exercises remain available.
+
+## Editing Exercises
+
+Open Exercise library, find an exercise, and click **Edit exercise**. Active
+exercises also have an Edit exercise link on their review notes.
+
+You can change:
+
+- Name, description, dose, and image/demo URL.
+- Exercise type: Stretching or Strength.
+- Body area (chosen from an existing-area dropdown), equipment, and whether it is done on the floor.
+- Stretch timer seconds and per-side behavior.
+
+Changing type moves the CSV row to the other file without creating a new database
+record. A conflicting name in the destination type must be changed before saving.
+The form switches when you choose a type: Stretching shows timer settings,
+and Strength hides and disables them. Saving as strength clears timer seconds and per-side
+settings; reclassification retains previously logged strength sets.
+
+Blank seconds disables the timer. Changing the dose text does not automatically
+change timer seconds; edit both when needed.
+Blank equipment or a value starting with "None" means no equipment, consistent
+with CSV import. Demo URLs must use HTTP or HTTPS.
+
+**Save exercise** updates the existing database row and the matching row in
+`data/stretch.csv` or `data/strength.csv`. It preserves the database ID, workout
+history, logged sets, and review notes, even when the name or type changes. A later
+reimport matches the updated type and name without creating another exercise.
+Older sessions display the updated exercise details rather than a historical
+snapshot.
+
+Existing sessions keep their saved sequence and block names. Reload any open
+workout after a type correction so its timer and logging controls match the new
+type. The player rejects saves from a stale type. Old strength sets remain visible
+in summaries even after an exercise becomes a stretch.
+
+The editor preserves other CSV rows and extra columns such as `prefill_review`.
+When moving an exercise, nonempty extra fields are copied to the destination;
+missing extra columns are added there. Stretch timer columns are not added to the
+strength CSV.
+Existing cells beyond a CSV's header are preserved as unlabelled cells rather than
+blocking a move or being assigned to newly added metadata columns.
+It rejects duplicate names within an exercise type and refuses to save if the
+exercise or either CSV changed since the page was opened. Reload the latest details and
+reapply your edits in that case. Avoid editing the CSV externally while saving.
+
+Save errors appear on the edit page. If writing either CSV fails, database changes
+are rolled back and any replaced CSVs are restored. If committing the database
+fails after CSV replacement, the original CSVs are restored. If recovery also fails, the page and server
+log identify a retained original file to restore manually.
+
+SQLite and a CSV cannot share a single atomic transaction. If the process or
+laptop stops during a save, stop the app and check both stores before reimporting.
+Hidden `.stretch.csv-edit-*.original` or `.strength.csv-edit-*.original` files in
+`data/` contain pre-edit CSV recovery copies if saving was interrupted. Compare
+them with the database before restoring, since an interruption may also occur
+after a successful commit. Database backups do not include the source CSVs;
+preserve both before manual recovery.
 
 ## Session Completion and Resume
 
@@ -403,7 +466,7 @@ A temporary `prefill_review` column is ignored.
 - Reimporting updates matching type/name records.
 - Exercises removed from the CSV become inactive rather than being deleted.
 
-Run the importer after editing the source files:
+Run the importer after editing the source files directly (not after app edits):
 
 ```bash
 python import_data.py
@@ -447,9 +510,11 @@ health-tracker/
 │   ├── __init__.py
 │   ├── tracking.py
 │   ├── reviews.py
+│   ├── exercise_editing.py
 │   ├── templates/
 │   │   ├── index.html
 │   │   ├── exercises.html
+│   │   ├── edit_exercise.html
 │   │   ├── workout.html
 │   │   ├── summary.html
 │   │   ├── history.html
@@ -458,6 +523,7 @@ health-tracker/
 │       ├── css/
 │       │   └── styles.css
 │       └── js/
+│           ├── edit-exercise.js
 │           ├── workout.js
 │           └── stretch-timer.js
 ├── data/
@@ -485,7 +551,9 @@ Run tests from the repository root:
 python -m pytest
 ```
 
-Selection and backup/restore testing are implemented. Import, tracking, review, and expiration coverage should be verified or expanded as the project develops.
+Selection, backup/restore, and exercise editing/synchronization tests are
+implemented. Broader import, tracking, review, and expiration coverage should
+be verified or expanded as the project develops.
 
 ### Manual acceptance checklist
 
@@ -498,6 +566,7 @@ Selection and backup/restore testing are implemented. Import, tracking, review, 
 - [ ] Verify timer pause, reset, and automatic second-side behavior.
 - [ ] Save an exercise note and find it on the review page.
 - [ ] Resolve a review note.
+- [ ] Edit and rename an exercise in the app, then verify the CSV and history.
 - [ ] Finish a session and inspect its summary.
 - [ ] Verify expired-session cleanup using test data.
 - [ ] Test readability and controls on the TV.
@@ -586,7 +655,7 @@ Keep local databases and backup files out of Git.
 - No mobile-specific interface.
 - Remote images can fail or disappear.
 - No live Google Sheets synchronization.
-- No in-app exercise editor.
+- No in-app exercise creation or deletion.
 - No calendar or progress charts.
 - No CSV history export.
 - No persistent timer progress.
@@ -601,5 +670,5 @@ Keep local databases and backup files out of Git.
 - Previous strength performance displayed during workouts.
 - Local image downloads.
 - Stable exercise identifiers.
-- In-app exercise editing.
+- In-app exercise creation.
 - CSV export.

@@ -23,8 +23,9 @@
     <h1>Exercise reviews</h1>
 
     <p>
-      Make corrections in your CSV files, reimport them,
+      Use Edit exercise to save corrections to the database and source CSV,
       then mark the relevant notes resolved.
+      Inactive exercises must be corrected in the CSV and reimported.
     </p>
 
     <nav>
@@ -58,6 +59,11 @@
         </p>
 
         <p class="preserve-lines">{{ review["note"] }}</p>
+        {% if review["active"] %}
+          <p>
+            <a href="{{ url_for('edit_exercise', exercise_id=review['exercise_id']) }}">Edit exercise</a>
+          </p>
+        {% endif %}
 
         <p>
           Added: {{ review["created_at"].replace("T", " ") }}

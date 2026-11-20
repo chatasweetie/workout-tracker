@@ -2,6 +2,7 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 from app.reviews import register_review_routes
+from app.exercise_editing import register_exercise_edit_routes
 
 
 from flask import (
@@ -16,6 +17,7 @@ from flask import (
 
 import config
 from backup import BACKUP_DIR, backup_if_due
+from import_data import FILES
 from db import (
     DB_PATH,
     close_expired_sessions,
@@ -32,6 +34,7 @@ def create_app(test_config=None):
     app.config.from_mapping(
         DATABASE=DB_PATH,
         BACKUP_DIR=os.environ.get("WORKOUT_BACKUP_DIR", str(BACKUP_DIR)),
+        EXERCISE_CSV_FILES=FILES.copy(),
     )
 
     if test_config is not None:
@@ -238,5 +241,6 @@ def create_app(test_config=None):
 
     register_review_routes(app, get_db)
     register_tracking_routes(app, get_db)
+    register_exercise_edit_routes(app, get_db)
 
     return app

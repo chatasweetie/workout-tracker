@@ -38,6 +38,9 @@
               {% for exercise in area_group.list %}
                 <article class="card">
                   <h4>{{ exercise["name"] }}</h4>
+                  <p>
+                    <a href="{{ url_for('edit_exercise', exercise_id=exercise['id']) }}">Edit exercise</a>
+                  </p>
 
                   <p>
                     {{ "Floor" if exercise["on_floor"] else "Standing / not on floor" }}
