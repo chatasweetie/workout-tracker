@@ -2,4 +2,7 @@
 __pycache__/
 .pytest_cache/
 data/workout.db
+data/workout.db-wal
+data/workout.db-shm
+backups/
 .DS_Store

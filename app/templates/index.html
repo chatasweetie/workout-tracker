@@ -17,6 +17,14 @@
     <h1>Workout Tracker</h1>
     <p class="home-date">{{ today }}</p>
 
+    {% if backup_error %}
+      <p class="save-error" role="alert">
+        Automatic backup failed. Your workout data is still available,
+        but no new backup was created. Check the server log for details.
+        Opening this page again will retry.
+      </p>
+    {% endif %}
+
     {% if day_type == "rest" %}
       <p>Today is a rest day. Start either workout if you choose.</p>
     {% else %}

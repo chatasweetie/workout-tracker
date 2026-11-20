@@ -1,3 +1,5 @@
+import os
+import sqlite3
 from datetime import datetime, timedelta
 from app.reviews import register_review_routes
 
@@ -13,6 +15,7 @@ from flask import (
 )
 
 import config
+from backup import BACKUP_DIR, backup_if_due
 from db import (
     DB_PATH,
     close_expired_sessions,
@@ -28,6 +31,7 @@ def create_app(test_config=None):
 
     app.config.from_mapping(
         DATABASE=DB_PATH,
+        BACKUP_DIR=os.environ.get("WORKOUT_BACKUP_DIR", str(BACKUP_DIR)),
     )
 
     if test_config is not None:
@@ -57,6 +61,13 @@ def create_app(test_config=None):
         conn = get_db()
         expired_count = close_expired_sessions(conn, now)
 
+        backup_error = False
+        try:
+            backup_if_due(app.config["DATABASE"], app.config["BACKUP_DIR"])
+        except (OSError, sqlite3.Error, ValueError):
+            app.logger.exception("Automatic database backup failed")
+            backup_error = True
+
         resumable_sessions = conn.execute(
             """
             SELECT id, date, day_type, started_at
@@ -79,6 +90,7 @@ def create_app(test_config=None):
             day_type=day_type_for_weekday(today.weekday()),
             resumable_sessions=resumable_sessions,
             expired_count=expired_count,
+            backup_error=backup_error,
         )
 
     @app.post("/start")

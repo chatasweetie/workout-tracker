@@ -465,6 +465,7 @@ health-tracker/
 │   ├── strength.csv
 │   └── workout.db
 ├── tests/
+├── backup.py
 ├── config.py
 ├── db.py
 ├── import_data.py
@@ -484,7 +485,7 @@ Run tests from the repository root:
 python -m pytest
 ```
 
-Selection testing is implemented. Import, tracking, review, expiration, and backup coverage should be verified or expanded as the project develops.
+Selection and backup/restore testing are implemented. Import, tracking, review, and expiration coverage should be verified or expanded as the project develops.
 
 ### Manual acceptance checklist
 
@@ -504,7 +505,73 @@ Selection testing is implemented. Import, tracking, review, expiration, and back
 
 ## Backups
 
-A dedicated backup command and documented restore procedure remain to be implemented.
+Backups happen automatically on your first homepage visit each day, after
+expired sessions are closed. No backup command or macOS schedule is needed.
+The app checks for today's timestamped backup on disk, so restarting the server
+or refreshing the page does not create duplicates. A manual backup from today
+also satisfies this check.
+
+If an automatic backup fails, the homepage displays a warning and the server
+logs the error. The next homepage visit retries. The app remains usable.
+No backups run while the app is closed, and changes made later in the day are
+captured on the next day's visit, or by a manual backup.
+
+### Manual backups
+
+From the repository root with the virtual environment activated:
+
+```bash
+python backup.py
+```
+
+The command uses SQLite's backup API to capture committed data, including data
+in the write-ahead log, even while the app is running. It creates a unique,
+timestamped `workout-*.db` file in `backups/` and runs SQLite's integrity check
+before reporting success. Earlier backups are never overwritten or automatically
+deleted. A failed backup reports an error and exits with a nonzero status.
+
+To use another folder, including an already-synced cloud folder:
+
+```bash
+WORKOUT_BACKUP_DIR="$HOME/Documents/workout-backups" python backup.py
+```
+
+The destination folder is created if needed. The default `backups/` folder is
+relative to the project, regardless of the current working directory.
+For automatic backups, set `WORKOUT_BACKUP_DIR` when starting Flask instead:
+
+```bash
+WORKOUT_BACKUP_DIR="$HOME/Documents/workout-backups" \
+  python -m flask --app 'app:create_app()' run --debug --port 5001
+```
+
+Keep a copy outside the laptop for protection against disk loss.
+
+### Restore a backup
+
+1. Stop the Flask server with `Ctrl+C` and close any other database connections.
+2. Run `python backup.py` to preserve the current database before replacing it.
+3. If `data/workout.db-wal` or `data/workout.db-shm` still exist after shutdown,
+   checkpoint them using macOS's SQLite command:
+
+   ```bash
+   sqlite3 data/workout.db "PRAGMA wal_checkpoint(TRUNCATE);"
+   ```
+
+   Proceed only if the result is `0|0|0` and both journal files are gone after
+   the command exits. Otherwise another connection may still be open. Do not
+   manually delete the journal files.
+4. Replace the database with the chosen backup (substitute its actual filename):
+
+   ```bash
+   cp backups/workout-YYYYMMDD-HHMMSS-XXXXXXXX.db data/workout.db
+   ```
+
+5. Restart the app and check History and Exercise reviews. Reimporting the CSVs
+   is not necessary to restore a backup.
+
+Restoring replaces all current data with the snapshot, including the exercise
+catalog. Changes made after that snapshot are not included.
 
 The database contains workout history, performance records, and exercise-review notes. Preserve it before destructive resets or database changes.
 
@@ -524,11 +591,11 @@ Keep local databases and backup files out of Git.
 - No CSV history export.
 - No persistent timer progress.
 - No stable CSV exercise IDs across renames or category changes.
-- No dedicated backup/restore tool yet.
+- Automatic backups require a homepage visit; restore requires stopping the app and replacing the database.
 
 ## Planned Improvements
 
-- Database backup and restore verification.
+- Background scheduled backups that run without opening the app.
 - Additional automated tests.
 - Calendar and progress summaries.
 - Previous strength performance displayed during workouts.
