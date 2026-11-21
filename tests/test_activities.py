@@ -155,7 +155,8 @@ def test_history_combines_activities_and_workouts_in_date_order(activity_app):
 
     response = client.get("/history")
     assert response.status_code == 200
-    headings = re.findall(rb"<h2>([^<]+)</h2>", response.data)
+    details = response.data.split(b'id="history-details"', 1)[1]
+    headings = re.findall(rb"<h2>([^<]+)</h2>", details)
     assert headings == [
         f"{day} \u00b7 {label}".encode()
         for day, label in [
@@ -163,7 +164,7 @@ def test_history_combines_activities_and_workouts_in_date_order(activity_app):
             ("2026-11-19", "Walk"), ("2026-11-18", "flex"),
         ]
     ]
-    cards = re.findall(rb'<article class="card">(.*?)</article>', response.data, re.DOTALL)
+    cards = re.findall(rb'<article class="card">(.*?)</article>', details, re.DOTALL)
     workout = cards[2]
     assert b"Finished" in workout
     assert b"1 completed" in workout
@@ -188,12 +189,13 @@ def test_history_shows_activities_without_workout_sessions(activity_app):
         ).status_code == 302
     response = client.get("/history")
     assert response.status_code == 200
-    assert len(re.findall(rb"<h2>", response.data)) == 3
+    details = response.data.split(b'id="history-details"', 1)[1]
+    assert len(re.findall(rb"<h2>", details)) == 3
     for kind in ("Walk", "Run", "Bike"):
         assert kind.encode() in response.data
     assert b"No workouts or activities" not in response.data
-    assert b"View summary" not in response.data
-    assert b"Resume" not in response.data
+    assert b"View summary" not in details
+    assert b"Resume" not in details
     assert b'href="/history"' in client.get("/activities").data
 
 

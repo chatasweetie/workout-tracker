@@ -387,3 +387,129 @@ fieldset {
 #exercise-open-reviews li {
   margin-bottom: 12px;
 }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-grid strong,
+.summary-grid span {
+  display: block;
+}
+
+.summary-grid strong {
+  color: #93c5fd;
+  font-size: 2rem;
+}
+
+.calendar-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.calendar-scroll {
+  overflow-x: auto;
+}
+
+.history-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 630px;
+}
+
+.calendar-weekday {
+  text-align: center;
+}
+
+.calendar-day {
+  min-height: 100px;
+  padding: 8px;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.calendar-today {
+  border-color: #fbbf24;
+}
+
+.calendar-selected {
+  outline: 3px solid #93c5fd;
+  outline-offset: -3px;
+}
+
+.calendar-badge {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.badge-full { background: #1e40af; }
+.badge-flex { background: #6b21a8; }
+.badge-walk { background: #166534; }
+.badge-run { background: #9a3412; }
+.badge-bike { background: #155e75; }
+
+.history-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+}
+
+.history-chart {
+  margin: 16px 0;
+}
+
+.history-chart figcaption {
+  margin-bottom: 16px;
+  font-weight: bold;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: minmax(85px, 1fr) minmax(60px, 2fr) 6ch;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 1rem;
+}
+
+.chart-label {
+  overflow-wrap: anywhere;
+}
+
+.chart-value {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.chart-track {
+  height: 18px;
+  border-radius: 4px;
+  background: #374151;
+}
+
+.chart-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #60a5fa;
+}
+
+#history-details {
+  margin-top: 32px;
+}
+
+@media (max-width: 600px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

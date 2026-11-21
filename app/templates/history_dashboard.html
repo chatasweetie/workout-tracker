@@ -1,0 +1,113 @@
+{% macro bar_chart(title, unit, bars) %}
+  <figure class="history-chart">
+    <figcaption>{{ title }} ({{ unit }})</figcaption>
+    {% for bar in bars %}
+      <div class="chart-row" role="group" aria-label="{{ bar.description }}: {{ bar.display }}{% if bar.value is not none %} {{ unit }}{% endif %}">
+        <span class="chart-label">
+          {% if bar.session_id is defined %}
+            <a href="{{ url_for('session_summary', session_id=bar.session_id) }}">{{ bar.label }}</a>
+          {% else %}
+            {{ bar.label }}
+          {% endif %}
+        </span>
+        <span class="chart-track" aria-hidden="true">
+          {% if bar.width is not none %}<span class="chart-fill" style="width: {{ bar.width }}%"></span>{% endif %}
+        </span>
+        <span class="chart-value">{{ bar.display }}</span>
+      </div>
+    {% endfor %}
+  </figure>
+{% endmacro %}
+
+<section class="card" aria-labelledby="weekly-summary-heading">
+  <h2 id="weekly-summary-heading">This week</h2>
+  <p>{{ dashboard.week_start }} through {{ dashboard.today }}</p>
+  <div class="summary-grid">
+    <div><strong>{{ dashboard.week.active_days }}</strong><span>Active days</span></div>
+    <div><strong>{{ dashboard.week.workouts }}</strong><span>Completed workouts</span></div>
+    <div><strong>{{ "%.2f"|format(dashboard.week.minutes) }}</strong><span>Cardio minutes</span></div>
+    <div><strong>{{ "%.2f"|format(dashboard.week.miles) }}</strong><span>Cardio miles</span></div>
+  </div>
+  <p class="field-help">Active days include completed exercises or logged cardio. Completed workouts must be finished with at least one completed exercise; skip-only sessions do not count.</p>
+</section>
+
+<section class="card" aria-labelledby="calendar-heading">
+  <h2 id="calendar-heading">Activity calendar: {{ dashboard.month_label }}</h2>
+  <nav class="calendar-navigation">
+    {% if dashboard.previous_month %}
+      <a href="{{ url_for('history', month=dashboard.previous_month.isoformat()[:7], exercise_id=dashboard.exercise_id) }}">Previous month</a>
+    {% endif %}
+    <a href="{{ url_for('history', exercise_id=dashboard.exercise_id) }}">Current month</a>
+    {% if dashboard.next_month %}
+      <a href="{{ url_for('history', month=dashboard.next_month.isoformat()[:7], exercise_id=dashboard.exercise_id) }}">Next month</a>
+    {% endif %}
+  </nav>
+  <p class="field-help">Click a day to see its records below. Open and skipped sessions are labelled separately.</p>
+  <div class="calendar-scroll">
+    <div class="history-calendar">
+      {% for weekday in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+        <span class="calendar-weekday">{{ weekday }}</span>
+      {% endfor %}
+      {% for week in dashboard.calendar_weeks %}
+        {% for day in week %}
+          {% if day %}
+            <a class="calendar-day{% if day.today %} calendar-today{% endif %}{% if day.date == selected_day %} calendar-selected{% endif %}"
+               href="{{ url_for('history', month=dashboard.month, day=day.date, exercise_id=dashboard.exercise_id, _anchor='history-details') }}"
+               aria-label="{{ day.description }}"{% if day.date == selected_day %} aria-current="date"{% endif %}>
+              <span>{{ day.number }}</span>
+              {% for badge in day.badges %}
+                <span class="calendar-badge badge-{{ badge.kind }}">{{ badge.label }}{% if badge.count > 1 %} ×{{ badge.count }}{% endif %}</span>
+              {% endfor %}
+            </a>
+          {% else %}
+            <span class="calendar-empty" aria-hidden="true"></span>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="weekly-trends-heading">
+  <h2 id="weekly-trends-heading">Weekly trends</h2>
+  <p class="field-help">Eight Monday-to-Sunday weeks, including this week through today. Each chart uses its own scale.</p>
+  <div class="history-chart-grid">
+    {% for chart in dashboard.weekly_charts %}
+      {{ bar_chart(chart.title, chart.unit, chart.bars) }}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="body-coverage-heading">
+  <h2 id="body-coverage-heading">Body-area coverage</h2>
+  <p class="field-help">{{ dashboard.coverage_start }} through {{ dashboard.today }}. Completed exercise occurrences only; pending and skipped exercises are excluded.</p>
+  {% if not dashboard.body_completed %}<p>No completed exercises in the last 30 days.</p>{% endif %}
+  {% if dashboard.body_bars %}
+    {{ bar_chart('Completed exercises by body area', 'exercises', dashboard.body_bars) }}
+  {% endif %}
+</section>
+
+<section class="card" aria-labelledby="strength-progress-heading">
+  <h2 id="strength-progress-heading">Strength progress</h2>
+  {% if dashboard.strength_choices %}
+    <form method="get" class="activity-log-form">
+      <input type="hidden" name="month" value="{{ dashboard.month }}">
+      {% if selected_day %}<input type="hidden" name="day" value="{{ selected_day }}">{% endif %}
+      <label for="exercise_id">Exercise</label>
+      <select id="exercise_id" name="exercise_id">
+        {% for exercise in dashboard.strength_choices %}
+          <option value="{{ exercise.id }}"{% if exercise.id == dashboard.exercise_id %} selected{% endif %}>{{ exercise.name }}{% if not exercise.active %} (inactive){% endif %}</option>
+        {% endfor %}
+      </select>
+      <p><button type="submit">Show progress</button></p>
+    </form>
+    <p class="field-help">Last 12 workouts with this completed exercise and saved sets, oldest to newest. Weight is the heaviest logged set; reps are summed across logged sets. Missing values are not zero. Click a date for its workout summary.</p>
+    <div class="history-chart-grid">
+      {% for chart in dashboard.strength_charts %}
+        {{ bar_chart(chart.title, chart.unit, chart.bars) }}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>Complete an exercise and log reps or weight to see strength progress.</p>
+  {% endif %}
+</section>

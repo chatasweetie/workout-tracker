@@ -20,6 +20,13 @@
     <h1>Workout and activity history</h1>
     <p>Workout sessions, walks, runs, and bike rides, newest date first.</p>
 
+    {% include "history_dashboard.html" %}
+
+    <section id="history-details" aria-labelledby="history-details-heading">
+    <h2 id="history-details-heading">Recorded history{% if selected_day %}: {{ selected_day }}{% endif %}</h2>
+    {% if selected_day %}
+      <p><a href="{{ url_for('history', month=dashboard.month, exercise_id=dashboard.exercise_id, _anchor='history-details') }}">Show all records</a></p>
+    {% endif %}
     {% for entry in entries %}
       <article class="card">
         {% if entry["kind"] == "activity" %}
@@ -48,8 +55,9 @@
         {% endif %}
       </article>
     {% else %}
-      <p>No workouts or activities recorded yet.</p>
+      <p>{% if selected_day %}No records on this day.{% else %}No workouts or activities recorded yet.{% endif %}</p>
     {% endfor %}
+    </section>
   </main>
 </body>
 </html>

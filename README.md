@@ -21,6 +21,7 @@ It runs on a laptop in a browser. The browser or laptop display can be mirrored 
 - Save exercise-review notes for later corrections.
 - Automatically finish sessions when every exercise is completed or skipped.
 - View workout summaries and history.
+- Explore a calendar, weekly totals and trends, body-area coverage, and strength progress.
 - Resume unfinished sessions.
 
 No accounts, cloud hosting, AI services, or frontend build tools are required.
@@ -455,6 +456,36 @@ Within a date, entries are ordered by when the session was started or the activi
 was recorded. Workout sessions retain summary links and Resume links for unfinished
 sessions. Activity entries show their type, duration in minutes, and distance in miles.
 
+### History visualizations
+
+All five views appear above the detailed History list, without external chart
+services or JavaScript chart dependencies:
+
+- **Monthly calendar:** previous/current/next month navigation and labelled badges
+  for full, flexibility, walk, run, and bike records. Open and skip-only sessions
+  are identified. Click a day to filter the detailed list; Show all records clears
+  that filter.
+- **This-week cards:** Monday through today. Active days contain at least one
+  completed exercise or a cardio log. Completed workouts are finished sessions
+  with at least one completed exercise; skip-only sessions are excluded. Cardio
+  minutes and miles come only from walk/run/bike logs.
+- **Weekly trends:** eight weeks of completed workout counts, cardio minutes, and
+  cardio miles, each with its own bar scale. The current week excludes future dates.
+- **Body-area coverage:** completed exercise occurrences over the last 30 days,
+  including today. Pending and skipped exercises are excluded, and active library
+  areas without completions show zero. Dates are the recorded session dates.
+- **Strength progress:** choose an exercise with saved sets from completed exercise
+  occurrences. Two charts show the heaviest logged weight and total logged reps per
+  workout, across its last 12 workouts, oldest to newest. Missing weight/reps are
+  labelled Not logged rather than replaced with zero. Zero weight is retained.
+  Inactive or reclassified exercises with historical sets remain selectable.
+
+Day and month navigation do not change the current-week or 30-day summary windows.
+Strength chart dates link to workout summaries. Numeric chart labels are rounded
+to two decimal places; the detailed records remain available below.
+Exercise names and body areas reflect the current catalog, not historical snapshots.
+Session start-to-finish time is not treated as exercise duration.
+
 ## Exercise CSV Format
 
 Both source files use these columns:
@@ -534,6 +565,7 @@ health-tracker/
 ├── app/
 │   ├── __init__.py
 │   ├── tracking.py
+│   ├── history_metrics.py
 │   ├── activities.py
 │   ├── reviews.py
 │   ├── exercise_editing.py
@@ -545,6 +577,7 @@ health-tracker/
 │   │   ├── workout.html
 │   │   ├── summary.html
 │   │   ├── history.html
+│   │   ├── history_dashboard.html
 │   │   └── reviews.html
 │   └── static/
 │       ├── css/
@@ -684,7 +717,6 @@ Keep local databases and backup files out of Git.
 - Remote images can fail or disappear.
 - No live Google Sheets synchronization.
 - No in-app exercise creation or deletion.
-- No calendar or progress charts.
 - No CSV history export.
 - No persistent timer progress.
 - No stable CSV exercise IDs across renames or category changes.
@@ -694,7 +726,6 @@ Keep local databases and backup files out of Git.
 
 - Background scheduled backups that run without opening the app.
 - Additional automated tests.
-- Calendar and progress summaries.
 - Previous strength performance displayed during workouts.
 - Local image downloads.
 - Stable exercise identifiers.

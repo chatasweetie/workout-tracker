@@ -1,7 +1,8 @@
 import math
-from datetime import datetime
+from datetime import date, datetime
 
 from flask import abort, redirect, render_template, request, url_for
+from app.history_metrics import build_dashboard
 
 
 def optional_number(value, label, integer=False):
@@ -419,4 +420,22 @@ def register_tracking_routes(app, get_db):
             ),
             reverse=True,
         )
-        return render_template("history.html", entries=entries)
+        today = datetime.now().date()
+        month_text = request.args.get("month", today.strftime("%Y-%m"))
+        selected_day = request.args.get("day")
+        exercise_text = request.args.get("exercise_id")
+        try:
+            month = date.fromisoformat(month_text + "-01")
+            if month.isoformat()[:7] != month_text:
+                raise ValueError("Choose a month in YYYY-MM format.")
+            if selected_day is not None and date.fromisoformat(selected_day).isoformat() != selected_day:
+                raise ValueError("Choose a day in YYYY-MM-DD format.")
+            exercise_id = int(exercise_text) if exercise_text is not None else None
+            dashboard = build_dashboard(conn, sessions, activities, today, month, exercise_id)
+        except ValueError as error:
+            abort(400, description=f"Invalid history filter: {error}")
+        if selected_day:
+            entries = [entry for entry in entries if entry["date"] == selected_day]
+        return render_template(
+            "history.html", entries=entries, dashboard=dashboard, selected_day=selected_day,
+        )
