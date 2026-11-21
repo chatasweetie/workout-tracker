@@ -117,6 +117,36 @@ There is no need to reinstall dependencies or reimport exercises every time.
 
 If the browser still displays older JavaScript or styling after a change, try a hard refresh with `Command+Shift+R`.
 
+### macOS desktop icon
+
+After completing Setup, install the desktop launcher once:
+
+```bash
+.venv/bin/python macos_launcher.py --install
+```
+
+Double-click **Workout Tracker** on your Desktop. It starts the local server,
+waits until it is ready, and opens your default browser without a Terminal window.
+Clicking it again opens the running tracker rather than starting another server.
+
+The launcher remains in the Dock. Choose **Quit** from its Dock menu to stop a
+server it started. Closing the browser alone does not stop the server.
+If the project's development server is already running in Terminal on port 5001,
+the launcher reuses it and leaves it running when you quit; stop that server
+with `Ctrl+C` in Terminal.
+
+Launcher servers run without the debugger or automatic code reloading. Quit and
+reopen the desktop app after Python changes. Your existing database, CSV files,
+and automatic backups are used unchanged.
+
+Startup errors appear in an alert; server output is saved in
+`.desktop-launcher/server.log` in the project, which is ignored by Git.
+Another app using port 5001 is reported rather than stopped.
+
+The icon points to this project and its `.venv`. If you move the project,
+move the old icon to Trash and rerun the install command from its new location.
+No dependencies or exercise data are installed by the launcher.
+
 ## Workout Schedule
 
 | Day | Session | Structure |

@@ -7,3 +7,4 @@ data/workout.db-shm
 backups/
 data/.*.csv-edit-*
 .DS_Store
+.desktop-launcher/
